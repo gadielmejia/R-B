@@ -57,9 +57,7 @@ SECRET_KEY=tu_clave_secreta
 ### 5. Crear la base de datos
 
 ```bash
-mysql -u root -p
 CREATE DATABASE rentstyle CHARACTER SET utf8mb4;
-EXIT;
 ```
 
 ### 6. Ejecutar migraciones

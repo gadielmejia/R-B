@@ -42,11 +42,7 @@ git commit -m "Initial commit: RentStyle backend"
 ### Paso 2: Crear rama develop
 ```bash
 git checkout -b develop
-<<<<<<< HEAD
-git push -u origin develo
-=======
 git push -u origin develop
->>>>>>> 89f9ae44fcb446184234ca2b6c9b4807c7bc5f06
 ```
 
 ### Paso 3: Inicializar git flow

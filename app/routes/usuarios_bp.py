@@ -36,7 +36,7 @@ def create_usuario():
             return response_error("El body debe ser un JSON válido", 400)
         
         # Validar campos requeridos
-        required_fields = ['nombre', 'documento', 'correo', 'Contrasena', 'idRol']
+        required_fields = ['nombre', 'documento', 'correo', 'Contrasena']
         for field in required_fields:
             if field not in data:
                 return response_error(f"El campo '{field}' es requerido", 400)
@@ -47,16 +47,25 @@ def create_usuario():
         if Usuarios.query.filter_by(correo=data['correo']).first():
             return response_error("El correo ya está registrado", 400)
         
-        # Verificar que el rol existe
-        if not Roles.query.get(data['idRol']):
-            return response_error("El rol especificado no existe", 400)
+        # Asignar automáticamente el rol de cliente si no se proporciona
+        id_rol = data.get('idRol')
+        if not id_rol:
+            # Buscar el rol "Cliente"
+            rol_cliente = Roles.query.filter(Roles.nombre.ilike('cliente')).first()
+            if not rol_cliente:
+                return response_error("El rol 'Cliente' no existe en el sistema", 500)
+            id_rol = rol_cliente.idRol
+        else:
+            # Verificar que el rol existe si se proporciona
+            if not Roles.query.get(id_rol):
+                return response_error("El rol especificado no existe", 400)
         
         usuario = Usuarios(
             nombre=data['nombre'],
             documento=data['documento'],
             correo=data['correo'],
             Contrasena=data['Contrasena'],
-            idRol=data['idRol'],
+            idRol=id_rol,
             telefono=data.get('telefono')
         )
         usuario.save()
