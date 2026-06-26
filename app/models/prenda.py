@@ -17,6 +17,8 @@ class Prenda(db.Model):
     # Relaciones
     categoria = db.relationship('Categoria', back_populates='prendas')
     inventarios = db.relationship('Inventario', back_populates='prenda')
+    # Imágenes relacionadas
+    imagenes = db.relationship('PrendaImagen', back_populates='prenda', cascade='all, delete-orphan')
     
     def save(self):
         db.session.add(self)
