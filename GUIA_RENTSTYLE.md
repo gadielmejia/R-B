@@ -44,7 +44,7 @@ SECRET_KEY=una_clave_secreta_cualquiera_123
 
 ```bash
 cd RENTSTYLE-BACK-END-main
-pip install -r requirements.txt
+pip install -r requirements.txt 
 ```
 
 > ⚠️ Si falla `mysqlclient`, en Windows instala primero:  

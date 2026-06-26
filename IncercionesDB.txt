@@ -1,0 +1,36 @@
+CREATE DATABASE rentstyle CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+USE rentstyle;
+
+select * from categoria;
+select * from usuarios;
+
+-- Roles
+INSERT INTO roles (nombre) VALUES ('admin'), ('empleado'), ('cliente');
+
+-- Usuarios de prueba (contraseñas hasheadas con SHA-256)
+INSERT INTO usuarios (idRol, nombre, documento, telefono, correo, Contrasena) VALUES
+(1, 'Admin Principal', '123456789', '3001234567', 'admin@rentstyle.com',
+ '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9'),
+(3, 'Cliente Prueba', '987654321', '3009876543', 'Cliente@rentstyle.com',
+ 'e606e38b0d8c19b24cf0ee3808183162ea7cd63ff7912dbb22b5e803286b4446');
+
+-- Categorías
+INSERT INTO categoria (nombre) VALUES
+('Vestidos de Gala'), ('Trajes Formales'), ('Casual'), ('Accesorios');
+
+
+-- Prendas
+INSERT INTO prenda (idCategoria, nombre_prenda, descripcion, talla, color, precio_alquiler) VALUES
+(1, 'Vestido Verde Jade', 'Vestido largo de gala', 'M', 'Verde', 180000),
+(1, 'Vestido Negro Elegante', 'Vestido negro de noche', 'S', 'Negro', 220000),
+(2, 'Traje Azul Marino', 'Traje completo', '40', 'Azul', 250000),
+(3, 'Vestido Casual Floral', 'Vestido corto floral', 'M', 'Multicolor', 90000),
+(4, 'Bolso Clutch Dorado', 'Bolso de mano dorado', 'U', 'Dorado', 50000);
+
+-- Inventario
+INSERT INTO inventario (idPrenda, codigo_interno, estado) VALUES
+(1,'INV-001','disponible'),(1,'INV-002','disponible'),
+(2,'INV-003','disponible'),(3,'INV-004','disponible'),
+(3,'INV-005','disponible'),(4,'INV-006','disponible'),
+(5,'INV-007','disponible');
