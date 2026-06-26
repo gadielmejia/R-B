@@ -25,6 +25,8 @@ def create_app():
     from app.routes.categorias_bp import categorias_bp
     from app.routes.inventario_bp import inventario_bp
     from app.routes.auth_bp import auth_bp
+    from app.routes.citas_bp import citas_bp
+    from app.routes.comprobantes_bp import comprobantes_bp
 
     app.register_blueprint(home_bp)
     app.register_blueprint(roles_bp)
@@ -34,5 +36,6 @@ def create_app():
     app.register_blueprint(categorias_bp)
     app.register_blueprint(inventario_bp)
     app.register_blueprint(auth_bp)
-
+    app.register_blueprint(citas_bp)
+    app.register_blueprint(comprobantes_bp)
     return app
