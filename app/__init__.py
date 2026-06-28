@@ -3,10 +3,12 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from app.config.settings import Config
 from app.database.database import db
+from app.utils.cloudinary_utils import init_cloudinary
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    init_cloudinary(app)
     db.init_app(app)
     CORS(app, origins=["http://localhost:5173"])
     migrate = Migrate(app, db)
