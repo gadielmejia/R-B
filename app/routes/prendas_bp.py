@@ -2,23 +2,63 @@ from flask import Blueprint, request, current_app
 import os
 import uuid
 from werkzeug.utils import secure_filename
+import cloudinary.uploader
+from cloudinary.utils import cloudinary_url
 from app.database.database import db
 from app.models.prenda import Prenda
 from app.models.categoria import Categoria
 from app.models.prenda_imagen import PrendaImagen
 from app.utils.response import response_success, response_error, serialize_model, serialize_models
 
+prendas_bp = Blueprint('prendas', __name__, url_prefix='/api/prendas')
 
-BASE_UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'uploads', 'prendas')
-os.makedirs(BASE_UPLOAD_FOLDER, exist_ok=True)
+
+def _cloudinary_public_id(filename):
+    basename = secure_filename(filename)
+    name, _ = os.path.splitext(basename)
+    return f"{uuid.uuid4().hex}_{name}"
+
+
+def _upload_to_cloudinary(file_storage):
+    public_id = _cloudinary_public_id(file_storage.filename)
+    upload_result = cloudinary.uploader.upload(
+        file_storage,
+        public_id=public_id,
+        folder=current_app.config.get('CLOUDINARY_UPLOAD_FOLDER'),
+        overwrite=True,
+        resource_type='image',
+    )
+    return upload_result.get('public_id')
+
+
+def _delete_from_cloudinary(public_id):
+    try:
+        if not public_id:
+            return
+        cloudinary.uploader.destroy(public_id, invalidate=True, resource_type='image')
+    except Exception:
+        pass
+
 
 def _image_url(filename):
-    # Construye URL absoluta a partir de request
-    from flask import request
-    base = request.host_url.rstrip('/')
-    return f"{base}/static/uploads/prendas/{filename}"
+    if not filename:
+        return ''
+    if filename.startswith('http://') or filename.startswith('https://'):
+        return filename
 
-prendas_bp = Blueprint('prendas', __name__, url_prefix='/api/prendas')
+    try:
+        # Always prefer Cloudinary for stored public IDs.
+        url, _ = cloudinary_url(filename, secure=True, resource_type='image')
+        return url
+    except Exception:
+        pass
+
+    local_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'uploads', 'prendas', filename)
+    if os.path.exists(local_path):
+        base = request.host_url.rstrip('/')
+        return f"{base}/static/uploads/prendas/{filename}"
+
+    return filename
 
 # GET - Obtener todas las prendas
 @prendas_bp.route('', methods=['GET'])
@@ -91,17 +131,14 @@ def create_prenda():
                 color=color,
                 precio_alquiler=precio
             )
-            prenda.save()
+            db.session.add(prenda)
+            db.session.flush()
 
-            # Guardar imágenes
             saved_images = []
             for f in files:
                 if f and f.filename:
-                    filename = secure_filename(f.filename)
-                    unique = f"{uuid.uuid4().hex}_{filename}"
-                    dest = os.path.join(BASE_UPLOAD_FOLDER, unique)
-                    f.save(dest)
-                    img = PrendaImagen(idPrenda=prenda.idPrenda, filename=unique)
+                    public_id = _upload_to_cloudinary(f)
+                    img = PrendaImagen(idPrenda=prenda.idPrenda, filename=public_id)
                     db.session.add(img)
                     saved_images.append(img)
             db.session.commit()
@@ -162,6 +199,7 @@ def update_prenda(id):
 
             # Eliminar imágenes indicadas
             remove_ids = request.form.get('remove_image_ids')
+            ids = []
             if remove_ids:
                 try:
                     import json
@@ -171,31 +209,21 @@ def update_prenda(id):
                 for iid in ids:
                     img = PrendaImagen.query.get(int(iid))
                     if img and img.idPrenda == prenda.idPrenda:
-                        # borrar archivo
-                        path = os.path.join(BASE_UPLOAD_FOLDER, img.filename)
-                        try:
-                            if os.path.exists(path):
-                                os.remove(path)
-                        except Exception:
-                            pass
+                        _delete_from_cloudinary(img.filename)
                         db.session.delete(img)
 
             # Añadir nuevas imágenes
             new_files = request.files.getlist('images')
-            total_images_now = len(prenda.imagenes) - (len(ids) if remove_ids else 0)
+            total_images_now = len(prenda.imagenes) - len(ids)
             if new_files:
                 if total_images_now + len(new_files) > 10:
                     return response_error("Máximo 10 imágenes permitidas.", 400)
                 for f in new_files:
                     if f and f.filename:
-                        filename = secure_filename(f.filename)
-                        unique = f"{uuid.uuid4().hex}_{filename}"
-                        dest = os.path.join(BASE_UPLOAD_FOLDER, unique)
-                        f.save(dest)
-                        img = PrendaImagen(idPrenda=prenda.idPrenda, filename=unique)
+                        public_id = _upload_to_cloudinary(f)
+                        img = PrendaImagen(idPrenda=prenda.idPrenda, filename=public_id)
                         db.session.add(img)
 
-            # Validate at least one image remains
             db.session.commit()
             remaining = PrendaImagen.query.filter_by(idPrenda=prenda.idPrenda).count()
             if remaining == 0:
@@ -238,14 +266,8 @@ def delete_prenda(id):
         prenda = Prenda.query.get(id)
         if not prenda:
             return response_error("Prenda no encontrada", 404)
-        # eliminar archivos de imagen asociados
         for img in prenda.imagenes:
-            path = os.path.join(BASE_UPLOAD_FOLDER, img.filename)
-            try:
-                if os.path.exists(path):
-                    os.remove(path)
-            except Exception:
-                pass
+            _delete_from_cloudinary(img.filename)
         prenda.delete()
         return response_success(message="Prenda eliminada exitosamente")
     except Exception as e:
