@@ -1,4 +1,4 @@
-﻿alembic==1.18.4
+alembic==1.18.4
 bcrypt==5.0.0
 blinker==1.9.0
 click==8.4.1
@@ -19,7 +19,7 @@ marshmallow-sqlalchemy==1.5.0
 mysqlclient==2.2.8
 PyMySQL==1.2.0
 python-dotenv==1.2.2
+PyJWT==2.8.0
 SQLAlchemy==2.0.51
 typing_extensions==4.15.0
 Werkzeug==3.1.8
-PyJWT==2.10.1
