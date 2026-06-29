@@ -1,4 +1,5 @@
 from flask import Blueprint, request
+from werkzeug.security import generate_password_hash
 from app.database.database import db
 from app.models.usuarios import Usuarios
 from app.models.roles import Roles
@@ -49,7 +50,8 @@ def create_usuario():
 
         if Usuarios.query.filter_by(documento=data['documento']).first():
             return response_error("El documento ya está registrado", 400)
-        if Usuarios.query.filter_by(correo=data['correo']).first():
+        correo_lower = data['correo'].strip().lower()
+        if Usuarios.query.filter_by(correo=correo_lower).first():
             return response_error("El correo ya está registrado", 400)
 
         id_rol = data.get('idRol')
@@ -69,8 +71,8 @@ def create_usuario():
         usuario = Usuarios(
             nombre=data['nombre'],
             documento=data['documento'],
-            correo=data['correo'],
-            Contrasena=data['Contrasena'],
+            correo=correo_lower,
+            Contrasena=generate_password_hash(data['Contrasena']),
             idRol=id_rol,
             telefono=data.get('telefono')
         )
@@ -101,14 +103,15 @@ def update_usuario(id):
                 return response_error("El documento ya está registrado", 400)
             usuario.documento = data['documento']
         if 'correo' in data:
-            existing = Usuarios.query.filter_by(correo=data['correo']).first()
+            correo_lower = data['correo'].strip().lower()
+            existing = Usuarios.query.filter_by(correo=correo_lower).first()
             if existing and existing.idUsuario != id:
                 return response_error("El correo ya está registrado", 400)
-            usuario.correo = data['correo']
+            usuario.correo = correo_lower
         if 'telefono' in data:
             usuario.telefono = data['telefono'] or None
         if 'Contrasena' in data and data['Contrasena']:
-            usuario.Contrasena = data['Contrasena']
+            usuario.Contrasena = generate_password_hash(data['Contrasena'])
         if 'idRol' in data:
             try:
                 id_rol = int(data['idRol'])
