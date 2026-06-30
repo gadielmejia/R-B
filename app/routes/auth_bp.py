@@ -1,4 +1,5 @@
 from flask import Blueprint, request, current_app
+from sqlalchemy import func
 from werkzeug.security import check_password_hash, generate_password_hash
 from app.models.usuarios import Usuarios
 from app.utils.response import response_success, response_error, serialize_model
