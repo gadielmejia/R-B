@@ -4,6 +4,7 @@ from app.models.usuarios import Usuarios
 from app.models.prenda import Prenda
 from app.models.prenda_imagen import PrendaImagen
 from app.models.inventario import Inventario
+from app.models.lote import Lote
 from app.models.reserva import Reserva
 from app.models.detalle_reserva import Detalle_Reserva
 from app.models.comprobante import Comprobante

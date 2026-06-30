@@ -10,6 +10,7 @@ class Usuarios(db.Model):
     documento = db.Column(db.String(20), nullable=False, unique=True)
     telefono = db.Column(db.String(20))
     correo = db.Column(db.String(100), nullable=False, unique=True)
+    avatar_url = db.Column(db.String(255))
     Contrasena = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
