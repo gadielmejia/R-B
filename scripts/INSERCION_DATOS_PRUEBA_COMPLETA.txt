@@ -53,14 +53,13 @@ INSERT INTO Inventario (idPrenda, idLote, codigo_interno, talla, estado) VALUES
 (6, NULL, 'INV-010', 'S', 'Disponible');
 
 -- 7. INSERTAR IMÁGENES DE PRENDAS (depende de Prenda)
-INSERT INTO PrendaImagen (idPrenda, filename) VALUES 
-(1, 'vestido_casual_floral_1.jpg'),
-(1, 'vestido_casual_floral_2.jpg'),
-(2, 'vestido_verde_jade_1.jpg'),
-(3, 'traje_ejecutivo_negro_1.jpg'),
-(4, 'bolso_clutch_dorado_1.jpg'),
-(5, 'zapatos_formales_negro_1.jpg'),
-(6, 'vestido_rojo_gala_1.jpg');
+INSERT INTO PrendaImagen (idPrenda, filename, created_at) VALUES
+(1, 'RentStyle/6bd6c2f6334243bba27ee79e2ad7fb01_f537b95f74403070ee30b81ca7124f4d', '2026-06-30 20:52:30'),
+(2, 'RentStyle/f9c0206d787e47edba67f0b14ed810b1_10a0220cfb4dcd843ac4a72a5f5e8360', '2026-06-30 20:54:27'),
+(3, 'RentStyle/68463851126f451dad9e819e08e8cf37_eaa63e9fbb9c82d58e31bf9c09117cbe', '2026-06-30 20:54:13'),
+(4, 'RentStyle/218c584eb0474223b8b4163214bac883_Claret_Prom_Dress', '2026-06-30 20:56:47'),
+(5, 'RentStyle/d2f34cfec8a54e1aa26388e4e8f25872_440c9f3ce99e290a384a4567b3484d03', '2026-06-30 20:58:54');
+-- 7. INSERTAR IMÁGENES DE PRENDAS (depende de Prenda)
 
 -- 8. INSERTAR RESERVAS (depende de Usuarios)
 INSERT INTO Reserva (id_cliente, id_administrador, fecha_reserva, fecha_evento, fecha_inicio, fecha_fin, fecha_devolucion, estado, observaciones) VALUES 

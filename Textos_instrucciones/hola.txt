@@ -44,14 +44,18 @@ pip freeze > requirements.txt
 creo la base de datos para poder configurar el .env 
 .env:
     
-MYSQL_HOST=127.0.0.1
+MYSQL_HOST=localhost
 MYSQL_PORT=3306
 MYSQL_USER=root
 MYSQL_PASSWORD=
-MYSQL_DATABASE=musigest
+MYSQL_DATABASE=rentstyle
+SECRET_KEY=una_clave_secreta_cualquiera_123
 
-SECRET_KEY=123456789
-
+CLOUDINARY_URL=CLOUDINARY_URL=cloudinary://258274483883165:-9_1SiPXqapF976QeFzzIyF3wFg@dkl6c2jk7
+CLOUDINARY_CLOUD_NAME=dkl6c2jk7
+CLOUDINARY_API_KEY=258274483883165
+CLOUDINARY_API_SECRET=-9_1SiPXqapF976QeFzzIyF3wFg
+CLOUDINARY_UPLOAD_FOLDER=RentStyle
 
  
 

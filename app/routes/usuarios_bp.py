@@ -1,12 +1,13 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, current_app
+from sqlalchemy import func
 from werkzeug.security import generate_password_hash
 from app.database.database import db
 from app.models.usuarios import Usuarios
 from app.models.roles import Roles
 from app.utils.response import response_success, response_error, serialize_model, serialize_models
-from werkzeug.security import generate_password_hash
 from app.utils.cloudinary_utils import upload_file_to_cloudinary, get_cloudinary_url
 import hashlib
+import jwt
 
 usuarios_bp = Blueprint('usuarios', __name__, url_prefix='/api/usuarios')
 
@@ -34,6 +35,22 @@ def parse_user_payload():
     if request.content_type and 'multipart/form-data' in request.content_type:
         return request.form.to_dict()
     return request.get_json() or {}
+
+
+def get_token_payload():
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return None
+    token = auth_header.split(' ')[1]
+    try:
+        return jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+    except Exception:
+        return None
+
+
+def is_admin_request():
+    payload = get_token_payload()
+    return payload and payload.get('rol') == 'admin'
 
 
 def serialize_usuario(usuario):
@@ -73,7 +90,7 @@ def create_usuario():
         if not data:
             return response_error("El body debe ser un JSON válido o multipart/form-data", 400)
 
-        required_fields = ['nombre', 'documento', 'correo', 'Contrasena', 'idRol']
+        required_fields = ['nombre', 'documento', 'correo', 'Contrasena']
         for field in required_fields:
             if field not in data or str(data[field]).strip() == "":
                 return response_error(f"El campo '{field}' es requerido", 400)
@@ -84,18 +101,29 @@ def create_usuario():
         if Usuarios.query.filter_by(correo=correo_lower).first():
             return response_error("El correo ya está registrado", 400)
 
-        data['Contrasena'] = normalize_password(data['Contrasena'])
+        password = data['Contrasena']
+        if is_sha256_hash(password):
+            return response_error("La contraseña debe ser texto plano, no el hash", 400)
 
-        if 'idRol' not in data or not data['idRol']:
-            return response_error("El rol es obligatorio al crear un usuario", 400)
-
-        try:
-            id_rol = int(data['idRol'])
-        except (TypeError, ValueError):
-            return response_error("El rol especificado no es válido", 400)
-
-        if not Roles.query.get(id_rol):
-            return response_error("El rol especificado no existe", 400)
+        if is_admin_request():
+            id_rol = None
+            if 'idRol' in data and data['idRol']:
+                try:
+                    id_rol = int(data['idRol'])
+                except (TypeError, ValueError):
+                    return response_error("El rol especificado no es válido", 400)
+                if not Roles.query.get(id_rol):
+                    return response_error("El rol especificado no existe", 400)
+            if id_rol is None:
+                cliente_role = Roles.query.filter(func.lower(Roles.nombre) == 'cliente').first()
+                if not cliente_role:
+                    return response_error("No se encontró el rol cliente en el sistema", 500)
+                id_rol = cliente_role.idRol
+        else:
+            cliente_role = Roles.query.filter(func.lower(Roles.nombre) == 'cliente').first()
+            if not cliente_role:
+                return response_error("No se encontró el rol cliente en el sistema", 500)
+            id_rol = cliente_role.idRol
 
         avatar_url = None
         if 'avatar' in request.files:
@@ -108,7 +136,7 @@ def create_usuario():
             nombre=data['nombre'],
             documento=data['documento'],
             correo=correo_lower,
-            Contrasena=generate_password_hash(data['Contrasena']),
+            Contrasena=generate_password_hash(password),
             idRol=id_rol,
             telefono=data.get('telefono'),
             avatar_url=avatar_url,
