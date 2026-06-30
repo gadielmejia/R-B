@@ -7,8 +7,11 @@ class Inventario(db.Model):
     idInventario = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
     idPrenda = db.Column(db.Integer, db.ForeignKey('Prenda.idPrenda'), nullable=False)
+    idLote = db.Column(db.Integer, db.ForeignKey('Lote.idLote'), nullable=True)
 
     codigo_interno = db.Column(db.String(30), nullable=False, unique=True)
+
+    talla = db.Column(db.String(10), nullable=True)
 
     estado = db.Column(db.Enum('Disponible', 'Reservado', 'Alquilado', 'Reparacion'), default='Disponible')
     
@@ -18,7 +21,7 @@ class Inventario(db.Model):
     
     # Relaciones
     prenda = db.relationship('Prenda', back_populates='inventarios')
-        
+    lote = db.relationship('Lote', back_populates='inventarios')
     detalles_reserva = db.relationship('Detalle_Reserva', back_populates='inventario')
     
     def save(self):

@@ -3,12 +3,42 @@ from sqlalchemy import func
 from werkzeug.security import check_password_hash, generate_password_hash
 from app.models.usuarios import Usuarios
 from app.utils.response import response_success, response_error, serialize_model
+from werkzeug.security import check_password_hash
 import jwt
 import hashlib
 import string
 from datetime import datetime, timedelta
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api')
+
+def is_sha256_hash(value):
+    if not isinstance(value, str):
+        return False
+    value = value.lower()
+    return len(value) == 64 and all(c in '0123456789abcdef' for c in value)
+
+
+def hash_password(value):
+    return hashlib.sha256(value.encode('utf-8')).hexdigest()
+
+
+def check_password(stored, incoming):
+    if not stored or not incoming:
+        return False
+
+    if stored.startswith(('scrypt:', 'pbkdf2:', 'bcrypt:')):
+        return check_password_hash(stored, incoming)
+
+    if stored == incoming:
+        return True
+
+    if is_sha256_hash(incoming) and hash_password(stored) == incoming:
+        return True
+
+    if is_sha256_hash(stored) and hash_password(incoming) == stored:
+        return True
+
+    return False
 
 
 def is_hex_string(value, length=64):
