@@ -3,10 +3,8 @@ from sqlalchemy import func
 from werkzeug.security import check_password_hash, generate_password_hash
 from app.models.usuarios import Usuarios
 from app.utils.response import response_success, response_error, serialize_model
-from werkzeug.security import check_password_hash
 import jwt
 import hashlib
-import string
 from datetime import datetime, timedelta
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api')
@@ -19,35 +17,6 @@ def is_sha256_hash(value):
 
 
 def hash_password(value):
-    return hashlib.sha256(value.encode('utf-8')).hexdigest()
-
-
-def check_password(stored, incoming):
-    if not stored or not incoming:
-        return False
-
-    if stored.startswith(('scrypt:', 'pbkdf2:', 'bcrypt:')):
-        return check_password_hash(stored, incoming)
-
-    if stored == incoming:
-        return True
-
-    if is_sha256_hash(incoming) and hash_password(stored) == incoming:
-        return True
-
-    if is_sha256_hash(stored) and hash_password(incoming) == stored:
-        return True
-
-    return False
-
-
-def is_hex_string(value, length=64):
-    if not isinstance(value, str) or len(value) != length:
-        return False
-    return all(c in string.hexdigits for c in value)
-
-
-def sha256_hex(value):
     return hashlib.sha256(value.encode('utf-8')).hexdigest()
 
 
@@ -86,23 +55,20 @@ def login():
             return response_error("Correo o contraseña incorrectos", 401)
 
         password = data['Contrasena']
-        password_sha = sha256_hex(password)
         password_valid = False
 
-        if check_password_hash(usuario.Contrasena, password):
-            password_valid = True
-        elif check_password_hash(usuario.Contrasena, password_sha):
-            password_valid = True
-        elif usuario.Contrasena == password_sha:
-            password_valid = True
-        elif usuario.Contrasena == password:
-            password_valid = True
+        if usuario.Contrasena.startswith(('scrypt:', 'pbkdf2:', 'bcrypt:')):
+            password_valid = check_password_hash(usuario.Contrasena, password)
+        elif is_sha256_hash(usuario.Contrasena):
+            password_valid = hash_password(password) == usuario.Contrasena
+        else:
+            password_valid = usuario.Contrasena == password
 
         if not password_valid:
             return response_error("Correo o contraseña incorrectos", 401)
 
-        # Actualizar a hash seguro si el registro estaba en un formato antiguo
-        if not check_password_hash(usuario.Contrasena, password):
+        # Actualizar a hash seguro si el registro estaba en un formato antiguo SHA-256
+        if is_sha256_hash(usuario.Contrasena) and password_valid:
             usuario.Contrasena = generate_password_hash(password)
             usuario.save()
 

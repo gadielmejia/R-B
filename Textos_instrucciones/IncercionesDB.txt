@@ -34,3 +34,12 @@ INSERT INTO inventario (idPrenda, codigo_interno, estado) VALUES
 (2,'INV-003','disponible'),(3,'INV-004','disponible'),
 (3,'INV-005','disponible'),(4,'INV-006','disponible'),
 (5,'INV-007','disponible');
+
+-- Imágenes de prendas
+INSERT INTO PrendaImagen (idPrenda, filename, created_at) VALUES
+(1, 'RentStyle/6bd6c2f6334243bba27ee79e2ad7fb01_f537b95f74403070ee30b81ca7124f4d', '2026-06-30 20:52:30'),
+(2, 'RentStyle/f9c0206d787e47edba67f0b14ed810b1_10a0220cfb4dcd843ac4a72a5f5e8360', '2026-06-30 20:54:27'),
+(3, 'RentStyle/68463851126f451dad9e819e08e8cf37_eaa63e9fbb9c82d58e31bf9c09117cbe', '2026-06-30 20:54:13'),
+(4, 'RentStyle/218c584eb0474223b8b4163214bac883_Claret_Prom_Dress', '2026-06-30 20:56:47'),
+(5, 'RentStyle/d2f34cfec8a54e1aa26388e4e8f25872_440c9f3ce99e290a384a4567b3484d03', '2026-06-30 20:58:54');
+-- 7. INSERTAR IMÁGENES DE PRENDAS (depende de Prenda)
