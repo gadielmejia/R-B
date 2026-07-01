@@ -9,12 +9,12 @@ INSERT INTO Roles (nombre) VALUES
 ('admin'),
 ('cliente');
 
--- 2. INSERTAR USUARIOS (depende de Roles)
-INSERT INTO Usuarios (idRol, nombre, documento, telefono, correo, avatar_url, Contrasena) VALUES 
-(1, 'Admin Principal', '1234567890', '3001234567', 'admin@rentstyle.com', NULL, 'hashed_password_admin'),
-(2, 'Juan García', '9876543210', '3109876543', 'juan@example.com', NULL, 'hashed_password_juan'),
-(2, 'María López', '5555555555', '3105555555', 'maria@example.com', NULL, 'hashed_password_maria'),
-(2, 'Carlos Rodríguez', '4444444444', '3104444444', 'carlos@example.com', NULL, 'hashed_password_carlos');
+-- Usuarios de prueba (contraseñas hasheadas con SHA-256)
+INSERT INTO usuarios (idRol, nombre, documento, telefono, correo, Contrasena) VALUES
+(1, 'Admin Principal', '123456789', '3001234567', 'admin@rentstyle.com',
+ '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9'),
+(3, 'Cliente Prueba', '987654321', '3009876543', 'Cliente@rentstyle.com',
+ 'e606e38b0d8c19b24cf0ee3808183162ea7cd63ff7912dbb22b5e803286b4446');
 
 -- 3. INSERTAR CATEGORÍAS
 INSERT INTO Categoria (nombre) VALUES 
