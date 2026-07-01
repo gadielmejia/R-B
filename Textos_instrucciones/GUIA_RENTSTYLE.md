@@ -35,12 +35,23 @@ Dentro de `RENTSTYLE-BACK-END-main/`, crea un archivo `.env` (copia de `.env.exa
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
 MYSQL_USER=root
-MYSQL_PASSWORD=TU_CONTRASEÑA_MYSQL
+MYSQL_PASSWORD=
 MYSQL_DATABASE=rentstyle
+
 SECRET_KEY=una_clave_secreta_cualquiera_123
+
+# Cloudinary configuration
+CLOUDINARY_CLOUD_NAME=dkl6c2jk7
+CLOUDINARY_API_KEY=258274483883165
+CLOUDINARY_API_SECRET=-9_1SiPXqapF976QeFzzIyF3wFg
+CLOUDINARY_UPLOAD_FOLDER=RentStyle
 ```
 
 ### 2.3 Instala dependencias
+
+py -m venv venv
+
+source venv/Scripts/activate
 
 ```bash
 cd RENTSTYLE-BACK-END-main
