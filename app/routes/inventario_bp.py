@@ -5,6 +5,7 @@ from app.models.inventario import Inventario
 from app.models.prenda import Prenda
 from app.models.lote import Lote
 from app.utils.response import response_success, response_error, serialize_model, serialize_models
+from app.routes.prendas_bp import _image_url
 
 inventario_bp = Blueprint('inventario', __name__, url_prefix='/api/inventario')
 
@@ -35,7 +36,45 @@ def get_items_by_estado(estado):
         items = Inventario.query.filter_by(estado=estado).all()
         if not items:
             return response_error(f"No hay items con estado '{estado}'", 404)
-        return response_success(serialize_models(items), "Items obtenidos exitosamente")
+
+        results = []
+        for inv in items:
+            prenda = inv.prenda
+            thumbnail = ''
+            if prenda and getattr(prenda, 'imagenes', None):
+                first_img = prenda.imagenes[0]
+                thumbnail = _image_url(first_img.filename) if first_img else ''
+
+            results.append({
+                'idInventario': inv.idInventario,
+                'codigo_interno': inv.codigo_interno,
+                'talla': getattr(inv, 'talla', None),
+                'estado': inv.estado,
+                'idPrenda': getattr(inv, 'idPrenda', None),
+                'prenda': {
+                    'idPrenda': prenda.idPrenda if prenda else None,
+                    'nombre_prenda': prenda.nombre_prenda if prenda else None,
+                    'color': prenda.color if prenda else None,
+                    'thumbnail_url': thumbnail
+                }
+            })
+
+        return response_success(results, "Items obtenidos exitosamente")
+    except Exception as e:
+        return response_error(str(e), 500)
+
+
+# GET - Resumen de inventario (counts por estado)
+@inventario_bp.route('/summary', methods=['GET'])
+def get_inventario_summary():
+    try:
+        states = ['Disponible', 'Reservado', 'Alquilado', 'Reparacion']
+        summary = {s: Inventario.query.filter_by(estado=s).count() for s in states}
+        total = Inventario.query.count()
+        return response_success({
+            'total': total,
+            'by_estado': summary
+        }, "Resumen de inventario")
     except Exception as e:
         return response_error(str(e), 500)
 
