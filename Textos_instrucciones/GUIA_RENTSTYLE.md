@@ -58,6 +58,9 @@ cd RENTSTYLE-BACK-END-main
 pip install -r requirements.txt 
 ```
 
+pip install --force-reinstall PyJWT==2.8.0
+
+
 > ⚠️ Si falla `mysqlclient`, en Windows instala primero:  
 > `pip install mysqlclient` requiere compiladores. Alternativa: ya está `PyMySQL` en requirements, que es puro Python.
 
