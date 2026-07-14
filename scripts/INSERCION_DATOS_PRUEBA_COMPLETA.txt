@@ -7,7 +7,7 @@
 -- 1. INSERTAR ROLES
 INSERT INTO Roles (nombre) VALUES 
 ('admin'),
-('cliente')
+('cliente'),
 ('empleado');
 
 -- Usuarios de prueba (contraseñas hasheadas con SHA-256)
