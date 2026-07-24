@@ -4,6 +4,18 @@
 -- Orden importante: Respeta las dependencias de claves foráneas
 -- ============================================================================
 
+CREATE DATABASE rentstyle CHARACTER SET utf8mb4;
+
+use rentstyle;
+
+
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+
+
+
+
 -- 1. INSERTAR ROLES
 INSERT INTO Roles (nombre) VALUES 
 ('admin'),
@@ -26,13 +38,13 @@ INSERT INTO Categoria (nombre) VALUES
 ('Bolsos');
 
 -- 4. INSERTAR PRENDAS (depende de Categoria)
-INSERT INTO Prenda (idCategoria, nombre_prenda, descripcion, talla, color, precio_alquiler) VALUES 
-(1, 'Vestido Casual Floral', 'Vestido casual de flores para el día', 'M', 'Azul', 25000.00),
-(1, 'Vestido Verde Jade', 'Vestido verde elegante para eventos', 'L', 'Verde', 35000.00),
-(2, 'Traje Ejecutivo Negro', 'Traje formal de dos piezas', 'L', 'Negro', 50000.00),
-(2, 'Bolso Clutch Dorado', 'Bolso clutch elegante metalizado', 'Único', 'Dorado', 15000.00),
-(4, 'Zapatos Formales Negro', 'Zapatos de tacón para eventos formales', '38', 'Negro', 12000.00),
-(1, 'Vestido Rojo Gala', 'Vestido de gala en color rojo vino', 'S', 'Rojo', 45000.00);
+INSERT INTO Prenda (idCategoria, nombre_prenda, descripcion, color, precio_alquiler) VALUES 
+(1, 'Vestido Casual Floral', 'Vestido casual de flores para el día', 'Azul', 25000.00),
+(1, 'Vestido Verde Jade', 'Vestido verde elegante para eventos', 'Verde', 35000.00),
+(2, 'Traje Ejecutivo Negro', 'Traje formal de dos piezas', 'Negro', 50000.00),
+(2, 'Bolso Clutch Dorado', 'Bolso clutch elegante metalizado', 'Dorado', 15000.00),
+(4, 'Zapatos Formales Negro', 'Zapatos de tacón para eventos formales', 'Negro', 12000.00),
+(1, 'Vestido Rojo Gala', 'Vestido de gala en color rojo vino', 'Rojo', 45000.00);
 
 -- 5. INSERTAR LOTES (depende de Prenda)
 INSERT INTO Lote (idPrenda, nombre_lote, descripcion_lote, cantidad_prendas) VALUES 
@@ -89,6 +101,8 @@ INSERT INTO Comprobante (idReserva, numero_comprobante, tipo_comprobante, monto_
 (2, 'CMP-2026-002', 'Factura', 62000.00, 'Emitido', 'Factura para evento matrimonial'),
 (3, 'CMP-2026-003', 'Ticket', 65000.00, 'Pendiente', 'Comprobante por alquiler de 2 prendas');
 
+
+SET FOREIGN_KEY_CHECKS = 1;
 -- ============================================================================
 -- FIN DEL SCRIPT
 -- ============================================================================
