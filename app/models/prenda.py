@@ -8,7 +8,6 @@ class Prenda(db.Model):
     idCategoria = db.Column(db.Integer, db.ForeignKey('Categoria.idCategoria'), nullable=False)
     nombre_prenda = db.Column(db.String(100), nullable=False)
     descripcion = db.Column(db.Text)
-    talla = db.Column(db.String(10))
     color = db.Column(db.String(30))
     precio_alquiler = db.Column(db.Numeric(10, 2), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

@@ -60,12 +60,19 @@ def create_reserva_con_detalles():
             return response_error("El administrador especificado no existe", 400)
         
         # Verificar que todos los inventarios existen y están disponibles
+        seen_inventarios = set()
         for detalle in detalles:
             id_inv = detalle.get('idInventario')
+            cantidad = detalle.get('cantidad', 1)
             if not id_inv:
                 return response_error("Cada detalle debe tener 'idInventario'", 400)
-            
-            inv = Inventario.query.get(id_inv)
+            if cantidad != 1:
+                return response_error("Cada detalle debe representar una unidad de inventario individual con cantidad 1", 400)
+            if id_inv in seen_inventarios:
+                return response_error("No se pueden reservar dos veces el mismo inventario en una sola reserva", 400)
+            seen_inventarios.add(id_inv)
+
+            inv = db.session.query(Inventario).with_for_update().filter_by(idInventario=id_inv).first()
             if not inv:
                 return response_error(f"Inventario {id_inv} no encontrado", 404)
             
@@ -89,20 +96,19 @@ def create_reserva_con_detalles():
         # Agregar detalles de reserva y actualizar inventarios
         for detalle in detalles:
             id_inv = detalle.get('idInventario')
-            cantidad = detalle.get('cantidad', 1)
             subtotal = detalle.get('subtotal', 0)
             
             # Crear detalle de reserva
             det_reserva = Detalle_Reserva(
                 idReserva=reserva.idReserva,
                 idInventario=id_inv,
-                cantidad=cantidad,
+                cantidad=1,
                 subtotal=subtotal
             )
             det_reserva.save()
             
             # Actualizar inventario a "Reservado"
-            inv = Inventario.query.get(id_inv)
+            inv = db.session.query(Inventario).with_for_update().filter_by(idInventario=id_inv).first()
             inv.estado = 'Reservado'
             inv.save()
         

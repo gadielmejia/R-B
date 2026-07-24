@@ -63,6 +63,35 @@ def _image_url(filename):
     return filename
 
 # GET - Obtener todas las prendas
+def _stock_summary(prenda):
+    status_counts = {
+        'Disponible': 0,
+        'Reservado': 0,
+        'Alquilado': 0,
+        'Reparacion': 0
+    }
+    for inv in prenda.inventarios:
+        estado = inv.estado or 'Disponible'
+        if estado in status_counts:
+            status_counts[estado] += 1
+
+    return {
+        'stock_total': len(prenda.inventarios),
+        'stock_disponible': status_counts['Disponible'],
+        'stock_reservado': status_counts['Reservado'],
+        'stock_alquilado': status_counts['Alquilado'],
+        'stock_reparacion': status_counts['Reparacion'],
+        'inventory_codes': [
+            {
+                'idInventario': inv.idInventario,
+                'codigo_interno': inv.codigo_interno,
+                'talla': getattr(inv, 'talla', None),
+                'estado': inv.estado
+            }
+            for inv in prenda.inventarios
+        ]
+    }
+
 @prendas_bp.route('', methods=['GET'])
 def get_prendas():
     try:
@@ -72,6 +101,7 @@ def get_prendas():
             item = serialize_model(p)
             item['images'] = [{'idImagen': img.idImagen, 'filename': img.filename, 'url': _image_url(img.filename)} for img in p.imagenes]
             item['inventory'] = [{'idInventario': inv.idInventario, 'codigo_interno': inv.codigo_interno, 'estado': inv.estado, 'talla': getattr(inv, 'talla', None), 'idLote': getattr(inv, 'idLote', None)} for inv in p.inventarios]
+            item['stock'] = _stock_summary(p)
             item['lotes'] = [{
                 'idLote': lote.idLote,
                 'nombre_lote': lote.nombre_lote,
@@ -93,6 +123,7 @@ def get_prenda(id):
         item = serialize_model(prenda)
         item['images'] = [{'idImagen': img.idImagen, 'filename': img.filename, 'url': _image_url(img.filename)} for img in prenda.imagenes]
         item['inventory'] = [{'idInventario': inv.idInventario, 'codigo_interno': inv.codigo_interno, 'estado': inv.estado, 'talla': getattr(inv, 'talla', None), 'idLote': getattr(inv, 'idLote', None)} for inv in prenda.inventarios]
+        item['stock'] = _stock_summary(prenda)
         item['lotes'] = [{
             'idLote': lote.idLote,
             'nombre_lote': lote.nombre_lote,
@@ -115,6 +146,7 @@ def get_prendas_by_categoria(id_categoria):
             item = serialize_model(p)
             item['images'] = [{'idImagen': img.idImagen, 'filename': img.filename, 'url': _image_url(img.filename)} for img in p.imagenes]
             item['inventory'] = [{'idInventario': inv.idInventario, 'codigo_interno': inv.codigo_interno, 'estado': inv.estado, 'talla': getattr(inv, 'talla', None)} for inv in p.inventarios]
+            item['stock'] = _stock_summary(p)
             results.append(item)
         return response_success(results, "Prendas obtenidas exitosamente")
     except Exception as e:
@@ -130,7 +162,6 @@ def create_prenda():
             idCategoria = request.form.get('idCategoria')
             precio = request.form.get('precio_alquiler')
             descripcion = request.form.get('descripcion')
-            talla = request.form.get('talla')
             color = request.form.get('color')
 
             # Validaciones
@@ -149,7 +180,6 @@ def create_prenda():
                 nombre_prenda=nombre,
                 idCategoria=int(idCategoria),
                 descripcion=descripcion,
-                talla=talla,
                 color=color,
                 precio_alquiler=precio
             )
@@ -252,7 +282,6 @@ def create_prenda():
             nombre_prenda=data['nombre_prenda'],
             idCategoria=data['idCategoria'],
             descripcion=data.get('descripcion'),
-            talla=data.get('talla'),
             color=data.get('color'),
             precio_alquiler=data['precio_alquiler']
         )
@@ -335,8 +364,6 @@ def update_prenda(id):
                 prenda.precio_alquiler = request.form.get('precio_alquiler')
             if 'descripcion' in request.form:
                 prenda.descripcion = request.form.get('descripcion')
-            if 'talla' in request.form:
-                prenda.talla = request.form.get('talla')
             if 'color' in request.form:
                 prenda.color = request.form.get('color')
 
@@ -476,8 +503,6 @@ def update_prenda(id):
             prenda.nombre_prenda = data['nombre_prenda']
         if 'descripcion' in data:
             prenda.descripcion = data['descripcion']
-        if 'talla' in data:
-            prenda.talla = data['talla']
         if 'color' in data:
             prenda.color = data['color']
         if 'precio_alquiler' in data:
