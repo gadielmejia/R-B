@@ -1,0 +1,14 @@
+.git
+.gitignore
+.env
+.venv
+venv
+env
+__pycache__/
+*.py[cod]
+*.log
+.DS_Store
+.codebase-memory/
+Textos_instrucciones/
+tests/
+migrations/
