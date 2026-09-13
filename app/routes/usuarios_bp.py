@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash
 from app.database.database import db
 from app.models.usuarios import Usuarios
 from app.models.roles import Roles
+from app.utils.auth_middleware import token_required, employee_required
 from app.utils.response import response_success, response_error, serialize_model, serialize_models
 from app.utils.cloudinary_utils import upload_file_to_cloudinary, get_cloudinary_url
 import hashlib
@@ -54,15 +55,16 @@ def is_admin_request():
 
 
 def serialize_usuario(usuario):
-    data = serialize_model(usuario)
+    data = serialize_model(usuario, exclude_fields=['Contrasena'])
     data['rol_nombre'] = usuario.rol.nombre if usuario.rol else None
     if usuario.avatar_url and not usuario.avatar_url.startswith('http'):
         data['avatar_url'] = get_cloudinary_url(usuario.avatar_url)
     return data
 
 
-# GET - Obtener todos los usuarios
+                                  
 @usuarios_bp.route('', methods=['GET'])
+@employee_required
 def get_usuarios():
     try:
         usuarios = Usuarios.query.all()
@@ -70,8 +72,9 @@ def get_usuarios():
     except Exception as e:
         return response_error(str(e), 500)
 
-# GET - Obtener usuario por ID
+                              
 @usuarios_bp.route('/<int:id>', methods=['GET'])
+@employee_required
 def get_usuario(id):
     try:
         usuario = Usuarios.query.get(id)
@@ -81,7 +84,7 @@ def get_usuario(id):
     except Exception as e:
         return response_error(str(e), 500)
 
-# POST - Crear nuevo usuario
+                            
 @usuarios_bp.route('', methods=['POST'])
 def create_usuario():
     try:
@@ -147,8 +150,9 @@ def create_usuario():
     except Exception as e:
         return response_error(str(e), 500)
 
-# PUT - Actualizar usuario
+                          
 @usuarios_bp.route('/<int:id>', methods=['PUT'])
+@token_required
 def update_usuario(id):
     try:
         usuario = Usuarios.query.get(id)
@@ -178,6 +182,8 @@ def update_usuario(id):
         if 'Contrasena' in data and data['Contrasena']:
             usuario.Contrasena = generate_password_hash(data['Contrasena'])
         if 'idRol' in data:
+            if request.current_user.get('rol') != 'admin':
+                return response_error("Solo un administrador puede cambiar roles", 403)
             try:
                 id_rol = int(data['idRol'])
             except (TypeError, ValueError):
@@ -198,8 +204,9 @@ def update_usuario(id):
     except Exception as e:
         return response_error(str(e), 500)
 
-# DELETE - Eliminar usuario
+                           
 @usuarios_bp.route('/<int:id>', methods=['DELETE'])
+@token_required
 def delete_usuario(id):
     try:
         usuario = Usuarios.query.get(id)

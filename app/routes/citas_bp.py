@@ -3,6 +3,7 @@ from flask import Blueprint, request
 from app.database.database import db
 from app.models.cita import Cita
 from app.models.usuarios import Usuarios
+from app.utils.auth_middleware import token_required
 from app.utils.response import response_success, response_error, serialize_model, serialize_models
 
 citas_bp = Blueprint('citas', __name__, url_prefix='/api/citas')
@@ -24,6 +25,7 @@ def get_citas_cliente(id_cliente):
         return response_error(str(e), 500)
 
 @citas_bp.route('', methods=['POST'])
+@token_required
 def create_cita():
     try:
         data = request.get_json()
@@ -51,6 +53,7 @@ def create_cita():
         return response_error(str(e), 500)
 
 @citas_bp.route('/<int:id>', methods=['PUT'])
+@token_required
 def update_cita(id):
     try:
         cita = Cita.query.get(id)
@@ -69,6 +72,7 @@ def update_cita(id):
         return response_error(str(e), 500)
 
 @citas_bp.route('/<int:id>', methods=['DELETE'])
+@token_required
 def delete_cita(id):
     try:
         cita = Cita.query.get(id)

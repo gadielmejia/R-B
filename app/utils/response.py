@@ -18,14 +18,14 @@ def response_error(message="Error", status_code=400, errors=None):
 
 def serialize_model(model, exclude_fields=None):
     """Convierte un modelo SQLAlchemy a diccionario"""
-    if exclude_fields is None:
-        exclude_fields = []
-    
+    excluded = set(exclude_fields or [])
+    excluded.update({'Contrasena', 'contrasena'})
+
     result = {}
     for column in model.__table__.columns:
-        if column.name not in exclude_fields:
+        if column.name not in excluded:
             value = getattr(model, column.name)
-            # Convertir datetime a string
+                                         
             if hasattr(value, 'isoformat'):
                 result[column.name] = value.isoformat()
             else:

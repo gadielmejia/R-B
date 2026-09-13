@@ -13,7 +13,7 @@ class Detalle_Reserva(db.Model):
 
     subtotal = db.Column(db.Numeric(10, 2), nullable=False)
     
-    # Relaciones
+                
     reserva = db.relationship('Reserva', back_populates='detalles_reserva')
     
     inventario = db.relationship('Inventario', back_populates='detalles_reserva')

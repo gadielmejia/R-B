@@ -1,4 +1,4 @@
-# Importar todos los blueprints
+                               
 from app.routes.home_bp import home_bp
 from app.routes.roles_bp import roles_bp
 from app.routes.usuarios_bp import usuarios_bp

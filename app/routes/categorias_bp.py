@@ -1,11 +1,12 @@
 from flask import Blueprint, request
 from app.database.database import db
 from app.models.categoria import Categoria
+from app.utils.auth_middleware import token_required
 from app.utils.response import response_success, response_error, serialize_model, serialize_models
 
 categorias_bp = Blueprint('categorias', __name__, url_prefix='/api/categorias')
 
-# GET - Obtener todas las categorías
+                                    
 @categorias_bp.route('', methods=['GET'])
 def get_categorias():
     try:
@@ -14,7 +15,7 @@ def get_categorias():
     except Exception as e:
         return response_error(str(e), 500)
 
-# GET - Obtener categoría por ID
+                                
 @categorias_bp.route('/<int:id>', methods=['GET'])
 def get_categoria(id):
     try:
@@ -25,8 +26,9 @@ def get_categoria(id):
     except Exception as e:
         return response_error(str(e), 500)
 
-# POST - Crear nueva categoría
+                              
 @categorias_bp.route('', methods=['POST'])
+@token_required
 def create_categoria():
     try:
         data = request.get_json()
@@ -37,7 +39,7 @@ def create_categoria():
         if 'nombre' not in data:
             return response_error("El campo 'nombre' es requerido", 400)
         
-        # Verificar si la categoría ya existe
+                                             
         if Categoria.query.filter_by(nombre=data['nombre']).first():
             return response_error("La categoría ya existe", 400)
         
@@ -48,8 +50,9 @@ def create_categoria():
     except Exception as e:
         return response_error(str(e), 500)
 
-# PUT - Actualizar categoría
+                            
 @categorias_bp.route('/<int:id>', methods=['PUT'])
+@token_required
 def update_categoria(id):
     try:
         categoria = Categoria.query.get(id)
@@ -62,7 +65,7 @@ def update_categoria(id):
             return response_error("El body debe ser un JSON válido", 400)
         
         if 'nombre' in data:
-            # Verificar que no exista otra categoría con el mismo nombre
+                                                                        
             existing = Categoria.query.filter_by(nombre=data['nombre']).first()
             if existing and existing.idCategoria != id:
                 return response_error("La categoría ya existe", 400)
@@ -74,8 +77,9 @@ def update_categoria(id):
     except Exception as e:
         return response_error(str(e), 500)
 
-# DELETE - Eliminar categoría
+                             
 @categorias_bp.route('/<int:id>', methods=['DELETE'])
+@token_required
 def delete_categoria(id):
     try:
         categoria = Categoria.query.get(id)

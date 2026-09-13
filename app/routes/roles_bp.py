@@ -1,11 +1,12 @@
 from flask import Blueprint, request
 from app.database.database import db
 from app.models.roles import Roles
+from app.utils.auth_middleware import token_required
 from app.utils.response import response_success, response_error, serialize_model, serialize_models
 
 roles_bp = Blueprint('roles', __name__, url_prefix='/api/roles')
 
-# GET - Obtener todos los roles
+                               
 @roles_bp.route('', methods=['GET'])
 def get_roles():
     try:
@@ -14,7 +15,7 @@ def get_roles():
     except Exception as e:
         return response_error(str(e), 500)
 
-# GET - Obtener rol por ID
+                          
 @roles_bp.route('/<int:id>', methods=['GET'])
 def get_rol(id):
     try:
@@ -25,8 +26,9 @@ def get_rol(id):
     except Exception as e:
         return response_error(str(e), 500)
 
-# POST - Crear nuevo rol
+                        
 @roles_bp.route('', methods=['POST'])
+@token_required
 def create_rol():
     try:
         data = request.get_json()
@@ -37,7 +39,7 @@ def create_rol():
         if 'nombre' not in data:
             return response_error("El campo 'nombre' es requerido", 400)
         
-        # Verificar si el rol ya existe
+                                       
         if Roles.query.filter_by(nombre=data['nombre']).first():
             return response_error("El rol ya existe", 400)
         
@@ -48,8 +50,9 @@ def create_rol():
     except Exception as e:
         return response_error(str(e), 500)
 
-# PUT - Actualizar rol
+                      
 @roles_bp.route('/<int:id>', methods=['PUT'])
+@token_required
 def update_rol(id):
     try:
         rol = Roles.query.get(id)
@@ -62,7 +65,7 @@ def update_rol(id):
             return response_error("El body debe ser un JSON válido", 400)
         
         if 'nombre' in data:
-            # Verificar que no exista otro rol con el mismo nombre
+                                                                  
             existing = Roles.query.filter_by(nombre=data['nombre']).first()
             if existing and existing.idRol != id:
                 return response_error("El rol ya existe", 400)
@@ -74,8 +77,9 @@ def update_rol(id):
     except Exception as e:
         return response_error(str(e), 500)
 
-# DELETE - Eliminar rol
+                       
 @roles_bp.route('/<int:id>', methods=['DELETE'])
+@token_required
 def delete_rol(id):
     try:
         rol = Roles.query.get(id)

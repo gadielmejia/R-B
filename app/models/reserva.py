@@ -17,7 +17,7 @@ class Reserva(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relaciones
+                
     cliente = db.relationship('Usuarios', foreign_keys=[id_cliente], back_populates='reservas_cliente')
     administrador = db.relationship('Usuarios', foreign_keys=[id_administrador], back_populates='reservas_administrador')
     detalles_reserva = db.relationship('Detalle_Reserva', back_populates='reserva')

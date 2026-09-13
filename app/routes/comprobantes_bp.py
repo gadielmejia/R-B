@@ -2,6 +2,7 @@ from flask import Blueprint, request
 from app.database.database import db
 from app.models.comprobante import Comprobante
 from app.models.reserva import Reserva
+from app.utils.auth_middleware import token_required
 from app.utils.response import response_success, response_error, serialize_model, serialize_models
 import uuid
 from datetime import datetime
@@ -33,6 +34,7 @@ def get_comprobante_reserva(id_reserva):
 
 
 @comprobantes_bp.route('', methods=['POST'])
+@token_required
 def create_comprobante():
     try:
         data = request.get_json()
@@ -74,6 +76,7 @@ def create_comprobante():
 
 
 @comprobantes_bp.route('/<int:id_comprobante>', methods=['PUT'])
+@token_required
 def update_comprobante(id_comprobante):
     try:
         comp = Comprobante.query.get(id_comprobante)
@@ -116,6 +119,7 @@ def update_comprobante(id_comprobante):
 
 
 @comprobantes_bp.route('/<int:id_comprobante>', methods=['DELETE'])
+@token_required
 def delete_comprobante(id_comprobante):
     try:
         comp = Comprobante.query.get(id_comprobante)

@@ -67,7 +67,7 @@ def login():
         if not password_valid:
             return response_error("Correo o contraseña incorrectos", 401)
 
-        # Actualizar a hash seguro si el registro estaba en un formato antiguo SHA-256
+                                                                                      
         if is_sha256_hash(usuario.Contrasena) and password_valid:
             usuario.Contrasena = generate_password_hash(password)
             usuario.save()
@@ -83,7 +83,8 @@ def login():
         }, "Login exitoso")
 
     except Exception as e:
-        return response_error(str(e), 500)
+        current_app.logger.exception("Error durante el login")
+        return response_error("No se pudo iniciar sesión", 500)
 
 
 @auth_bp.route('/verify-token', methods=['GET'])

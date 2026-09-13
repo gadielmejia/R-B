@@ -19,7 +19,7 @@ class Inventario(db.Model):
 
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relaciones
+                
     prenda = db.relationship('Prenda', back_populates='inventarios')
     lote = db.relationship('Lote', back_populates='inventarios')
     detalles_reserva = db.relationship('Detalle_Reserva', back_populates='inventario')

@@ -41,3 +41,23 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
+
+def employee_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Bearer '):
+            return response_error("Token de acceso requerido", 401)
+        try:
+            token = auth_header.split(' ')[1]
+            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+            if payload.get('rol') not in {'admin', 'empleado'}:
+                return response_error("Acceso denegado: se requiere rol admin o empleado", 403)
+            request.current_user = payload
+        except jwt.ExpiredSignatureError:
+            return response_error("Sesión expirada, inicia sesión nuevamente", 401)
+        except jwt.InvalidTokenError:
+            return response_error("Token inválido", 401)
+        return f(*args, **kwargs)
+    return decorated
+

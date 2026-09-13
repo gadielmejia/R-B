@@ -6,7 +6,7 @@ class Roles(db.Model):
     idRol = db.Column(db.Integer, primary_key=True, autoincrement=True)
     nombre = db.Column(db.String(30), nullable=False, unique=True)
     
-    # Relaciones
+                
     usuarios = db.relationship('Usuarios', back_populates='rol')
     
     def save(self):

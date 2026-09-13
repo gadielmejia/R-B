@@ -10,6 +10,7 @@ from app.models.categoria import Categoria
 from app.models.prenda_imagen import PrendaImagen
 from app.models.inventario import Inventario
 from app.models.lote import Lote
+from app.utils.auth_middleware import token_required
 from app.utils.response import response_success, response_error, serialize_model, serialize_models
 
 prendas_bp = Blueprint('prendas', __name__, url_prefix='/api/prendas')
@@ -49,7 +50,7 @@ def _image_url(filename):
         return filename
 
     try:
-        # Always prefer Cloudinary for stored public IDs.
+                                                         
         url, _ = cloudinary_url(filename, secure=True, resource_type='image')
         return url
     except Exception:
@@ -62,7 +63,7 @@ def _image_url(filename):
 
     return filename
 
-# GET - Obtener todas las prendas
+                                 
 def _stock_summary(prenda):
     status_counts = {
         'Disponible': 0,
@@ -113,7 +114,7 @@ def get_prendas():
     except Exception as e:
         return response_error(str(e), 500)
 
-# GET - Obtener prenda por ID
+                             
 @prendas_bp.route('/<int:id>', methods=['GET'])
 def get_prenda(id):
     try:
@@ -134,7 +135,7 @@ def get_prenda(id):
     except Exception as e:
         return response_error(str(e), 500)
 
-# GET - Obtener prendas por categoría
+                                     
 @prendas_bp.route('/categoria/<int:id_categoria>', methods=['GET'])
 def get_prendas_by_categoria(id_categoria):
     try:
@@ -152,11 +153,12 @@ def get_prendas_by_categoria(id_categoria):
     except Exception as e:
         return response_error(str(e), 500)
 
-# POST - Crear nueva prenda
+                           
 @prendas_bp.route('', methods=['POST'])
+@token_required
 def create_prenda():
     try:
-        # Soportar multipart/form-data con archivos en campo 'images' o JSON tradicional
+                                                                                        
         if request.content_type and 'multipart/form-data' in request.content_type:
             nombre = request.form.get('nombre_prenda')
             idCategoria = request.form.get('idCategoria')
@@ -164,7 +166,7 @@ def create_prenda():
             descripcion = request.form.get('descripcion')
             color = request.form.get('color')
 
-            # Validaciones
+                          
             if not nombre or not idCategoria or not precio:
                 return response_error("Campos requeridos: nombre_prenda, idCategoria, precio_alquiler", 400)
             if not Categoria.query.get(int(idCategoria)):
@@ -221,7 +223,7 @@ def create_prenda():
                 except Exception:
                     parsed_codes = inventory_codes
 
-                # parsed_codes can be a list of strings or a list of objects {codigo, talla} or {codigo_interno, talla}
+                                                                                                                       
                 codes_list = []
                 if isinstance(parsed_codes, str):
                     codes_list = [parsed_codes]
@@ -230,7 +232,7 @@ def create_prenda():
                 else:
                     return response_error("El campo 'inventory_codes' debe ser una lista.", 400)
 
-                # Normalize to list of tuples (code, talla)
+                                                           
                 normalized = []
                 for item in codes_list:
                     if isinstance(item, dict):
@@ -250,7 +252,7 @@ def create_prenda():
                     if existing:
                         duplicates = ", ".join([item.codigo_interno for item in existing])
                         return response_error(f"Los siguientes códigos ya existen: {duplicates}", 400)
-                    # Create inventory items preserving talla when provided
+                                                                           
                     for code, talla_item in normalized:
                         if code:
                             inv = Inventario(idPrenda=prenda.idPrenda, codigo_interno=code, estado='Disponible', talla=talla_item, idLote=lote_model.idLote if lote_model else None)
@@ -268,7 +270,7 @@ def create_prenda():
             item['lote'] = serialize_model(lote_model) if lote_model else None
             return response_success(item, "Prenda creada exitosamente", 201)
 
-        # Fallback JSON API
+                           
         data = request.get_json()
         if not data:
             return response_error("El body debe ser un JSON válido", 400)
@@ -342,16 +344,17 @@ def create_prenda():
     except Exception as e:
         return response_error(str(e), 500)
 
-# PUT - Actualizar prenda
+                         
 @prendas_bp.route('/<int:id>', methods=['PUT'])
+@token_required
 def update_prenda(id):
     try:
         prenda = Prenda.query.get(id)
         if not prenda:
             return response_error("Prenda no encontrada", 404)
-        # Soportar multipart para subir nuevas imágenes y eliminar existentes
+                                                                             
         if request.content_type and 'multipart/form-data' in request.content_type:
-            # Campos del formulario
+                                   
             nombre = request.form.get('nombre_prenda')
             if nombre is not None:
                 prenda.nombre_prenda = nombre
@@ -367,7 +370,7 @@ def update_prenda(id):
             if 'color' in request.form:
                 prenda.color = request.form.get('color')
 
-            # Manejo de lote único: actualizar o eliminar lote existente
+                                                                        
             remove_lote = request.form.get('remove_lote')
             lote_data = request.form.get('lote_data')
             if remove_lote:
@@ -388,7 +391,7 @@ def update_prenda(id):
                         lote_model = prenda.lotes[0]
                         lote_model.nombre_lote = nombre_lote or lote_model.nombre_lote
                         lote_model.descripcion_lote = lote_payload.get('descripcion_lote', lote_model.descripcion_lote)
-                        # eliminar lotes extra si existieran
+                                                            
                         for extra in prenda.lotes[1:]:
                             for inv in extra.inventarios:
                                 inv.idLote = None
@@ -405,7 +408,7 @@ def update_prenda(id):
                         for inv in prenda.inventarios:
                             inv.idLote = lote_model.idLote
 
-            # Eliminar imágenes indicadas
+                                         
             remove_ids = request.form.get('remove_image_ids')
             ids = []
             if remove_ids:
@@ -420,7 +423,7 @@ def update_prenda(id):
                         _delete_from_cloudinary(img.filename)
                         db.session.delete(img)
 
-            # Añadir nuevas imágenes
+                                    
             new_files = request.files.getlist('images')
             total_images_now = len(prenda.imagenes) - len(ids)
             if new_files:
@@ -432,7 +435,7 @@ def update_prenda(id):
                         img = PrendaImagen(idPrenda=prenda.idPrenda, filename=public_id)
                         db.session.add(img)
 
-            # Eliminar códigos de inventario existentes marcados para remover
+                                                                             
             remove_inventory_ids = request.form.get('remove_inventory_ids')
             removed_ids = []
             if remove_inventory_ids:
@@ -446,7 +449,7 @@ def update_prenda(id):
                     if inv and inv.idPrenda == prenda.idPrenda:
                         db.session.delete(inv)
 
-            # Agregar nuevos códigos de inventario
+                                                  
             inventory_codes = request.form.get('inventory_codes')
             if inventory_codes:
                 try:
@@ -459,7 +462,7 @@ def update_prenda(id):
                     codes = parsed_codes
                 else:
                     return response_error("El campo 'inventory_codes' debe ser una lista.", 400)
-                # normalized handling: accept list of strings or list of objects
+                                                                                
                 normalized = []
                 for item in codes:
                     if isinstance(item, dict):
@@ -472,7 +475,7 @@ def update_prenda(id):
                         continue
                     if Inventario.query.filter_by(codigo_interno=code).first():
                         return response_error(f"El código de inventario '{code}' ya existe.", 400)
-                    # Solo agregar nuevos códigos si no existen en la prenda
+                                                                            
                     inv = Inventario(idPrenda=prenda.idPrenda, codigo_interno=code, talla=talla_item)
                     db.session.add(inv)
 
@@ -494,11 +497,11 @@ def update_prenda(id):
             item['lote'] = item['lotes'][0] if item['lotes'] else None
             return response_success(item, "Prenda actualizada exitosamente")
 
-        # Fallback JSON update
+                              
         data = request.get_json()
         if not data:
             return response_error("El body debe ser un JSON válido", 400)
-        # Actualizar solo los campos proporcionados
+                                                   
         if 'nombre_prenda' in data:
             prenda.nombre_prenda = data['nombre_prenda']
         if 'descripcion' in data:
@@ -517,8 +520,9 @@ def update_prenda(id):
     except Exception as e:
         return response_error(str(e), 500)
 
-# DELETE - Eliminar prenda
+                          
 @prendas_bp.route('/<int:id>', methods=['DELETE'])
+@token_required
 def delete_prenda(id):
     try:
         prenda = Prenda.query.get(id)
@@ -526,7 +530,7 @@ def delete_prenda(id):
             return response_error("Prenda no encontrada", 404)
         for img in prenda.imagenes:
             _delete_from_cloudinary(img.filename)
-        # Eliminar inventario asociado antes de borrar la prenda para evitar errores de clave foránea.
+                                                                                                      
         for inv in list(prenda.inventarios):
             db.session.delete(inv)
         prenda.delete()

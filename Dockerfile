@@ -25,4 +25,4 @@ EXPOSE 5000
 
 # Keep the project's Flask development server, but bind it to all interfaces
 # so the host can reach the container during local development.
-CMD ["flask", "--app", "run", "run", "--host=0.0.0.0", "--port=5000", "--debug"]
+CMD ["flask", "--app", "run", "run", "--host=0.0.0.0", "--port=5000"]

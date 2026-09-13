@@ -13,7 +13,7 @@ def init_cloudinary(app):
     api_secret = app.config.get('CLOUDINARY_API_SECRET')
     cloudinary_url_value = app.config.get('CLOUDINARY_URL')
 
-    # Priorizar credenciales explícitas si están todas presentes.
+                                                                 
     if cloud_name and api_key and api_secret:
         cloudinary.config(
             cloud_name=cloud_name,

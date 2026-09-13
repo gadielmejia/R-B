@@ -14,7 +14,7 @@ class Cita(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relaciones
+                
     administrador = db.relationship('Usuarios', foreign_keys=[id_administrador], back_populates='citas_administrador')
     cliente = db.relationship('Usuarios', foreign_keys=[id_cliente], back_populates='citas_cliente')
     reserva = db.relationship('Reserva', back_populates='citas')

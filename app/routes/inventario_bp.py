@@ -4,12 +4,13 @@ from app.database.database import db
 from app.models.inventario import Inventario
 from app.models.prenda import Prenda
 from app.models.lote import Lote
+from app.utils.auth_middleware import token_required
 from app.utils.response import response_success, response_error, serialize_model, serialize_models
 from app.routes.prendas_bp import _image_url
 
 inventario_bp = Blueprint('inventario', __name__, url_prefix='/api/inventario')
 
-# GET - Obtener todo el inventario
+                                  
 @inventario_bp.route('', methods=['GET'])
 def get_inventario():
     try:
@@ -18,7 +19,7 @@ def get_inventario():
     except Exception as e:
         return response_error(str(e), 500)
 
-# GET - Obtener item por ID
+                           
 @inventario_bp.route('/<int:id>', methods=['GET'])
 def get_item_inventario(id):
     try:
@@ -29,7 +30,7 @@ def get_item_inventario(id):
     except Exception as e:
         return response_error(str(e), 500)
 
-# GET - Obtener items por estado
+                                
 @inventario_bp.route('/estado/<estado>', methods=['GET'])
 def get_items_by_estado(estado):
     try:
@@ -64,7 +65,7 @@ def get_items_by_estado(estado):
         return response_error(str(e), 500)
 
 
-# GET - Resumen de inventario (counts por estado)
+                                                 
 @inventario_bp.route('/summary', methods=['GET'])
 def get_inventario_summary():
     try:
@@ -78,8 +79,9 @@ def get_inventario_summary():
     except Exception as e:
         return response_error(str(e), 500)
 
-# POST - Agregar item al inventario
+                                   
 @inventario_bp.route('', methods=['POST'])
+@token_required
 def create_item_inventario():
     try:
         data = request.get_json()
@@ -87,7 +89,7 @@ def create_item_inventario():
         if not data:
             return response_error("El body debe ser un JSON válido", 400)
         
-        # Validar campos requeridos
+                                   
         if 'lote_data' in data and data['lote_data'] is not None:
             required_fields = ['idPrenda']
         else:
@@ -96,11 +98,11 @@ def create_item_inventario():
             if field not in data:
                 return response_error(f"El campo '{field}' es requerido", 400)
 
-        # Verificar que la prenda existe
+                                        
         if not Prenda.query.get(data['idPrenda']):
             return response_error("La prenda especificada no existe", 400)
 
-        # Verificar que el código interno es único cuando no se crea un lote completo
+                                                                                     
         if ('lote_data' not in data or data['lote_data'] is None) and Inventario.query.filter_by(codigo_interno=data['codigo_interno']).first():
             return response_error("El código interno ya existe", 400)
 
@@ -193,8 +195,9 @@ def create_item_inventario():
     except Exception as e:
         return response_error(str(e), 500)
 
-# PUT - Actualizar estado del inventario
+                                        
 @inventario_bp.route('/<int:id>', methods=['PUT'])
+@token_required
 def update_item_inventario(id):
     try:
         item = Inventario.query.get(id)
@@ -218,8 +221,9 @@ def update_item_inventario(id):
     except Exception as e:
         return response_error(str(e), 500)
 
-# DELETE - Eliminar item del inventario
+                                       
 @inventario_bp.route('/<int:id>', methods=['DELETE'])
+@token_required
 def delete_item_inventario(id):
     try:
         item = Inventario.query.get(id)

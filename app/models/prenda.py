@@ -13,10 +13,10 @@ class Prenda(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relaciones
+                
     categoria = db.relationship('Categoria', back_populates='prendas')
     inventarios = db.relationship('Inventario', back_populates='prenda', cascade='all, delete-orphan')
-    # Imágenes relacionadas
+                           
     imagenes = db.relationship('PrendaImagen', back_populates='prenda', cascade='all, delete-orphan')
     lotes = db.relationship('Lote', back_populates='prenda', cascade='all, delete-orphan')
     

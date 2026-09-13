@@ -14,7 +14,7 @@ class Comprobante(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relaciones
+                
     reserva = db.relationship('Reserva', back_populates='comprobante')
     
     def save(self):
