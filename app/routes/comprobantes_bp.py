@@ -10,11 +10,17 @@ from datetime import datetime
 comprobantes_bp = Blueprint('comprobantes', __name__, url_prefix='/api/comprobantes')
 
 
+def serialize_comprobante(comp):
+    data = serialize_model(comp)
+    data['nombre_cliente'] = comp.reserva.cliente.nombre if comp.reserva and comp.reserva.cliente else None
+    return data
+
+
 @comprobantes_bp.route('', methods=['GET'])
 def get_comprobantes():
     try:
         items = Comprobante.query.all()
-        return response_success(serialize_models(items), "Comprobantes obtenidos")
+        return response_success([serialize_comprobante(item) for item in items], "Comprobantes obtenidos")
     except Exception as e:
         return response_error(str(e), 500)
 
@@ -27,7 +33,7 @@ def get_comprobante_reserva(id_reserva):
         if not comp:
             return response_error("Comprobante no encontrado", 404)
 
-        return response_success(serialize_model(comp), "Comprobante obtenido")
+        return response_success(serialize_comprobante(comp), "Comprobante obtenido")
 
     except Exception as e:
         return response_error(str(e), 500)
@@ -65,7 +71,7 @@ def create_comprobante():
         comp.save()
 
         return response_success(
-            serialize_model(comp),
+            serialize_comprobante(comp),
             "Comprobante generado exitosamente",
             201
         )
@@ -109,7 +115,7 @@ def update_comprobante(id_comprobante):
         db.session.commit()
 
         return response_success(
-            serialize_model(comp),
+            serialize_comprobante(comp),
             "Comprobante actualizado correctamente"
         )
 

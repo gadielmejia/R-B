@@ -8,11 +8,17 @@ from app.utils.response import response_success, response_error, serialize_model
 
 citas_bp = Blueprint('citas', __name__, url_prefix='/api/citas')
 
+
+def serialize_cita(cita):
+    data = serialize_model(cita)
+    data['nombre_cliente'] = cita.cliente.nombre if cita.cliente else None
+    return data
+
 @citas_bp.route('', methods=['GET'])
 def get_citas():
     try:
         citas = Cita.query.all()
-        return response_success(serialize_models(citas), "Citas obtenidas exitosamente")
+        return response_success([serialize_cita(cita) for cita in citas], "Citas obtenidas exitosamente")
     except Exception as e:
         return response_error(str(e), 500)
 
@@ -20,7 +26,7 @@ def get_citas():
 def get_citas_cliente(id_cliente):
     try:
         citas = Cita.query.filter_by(id_cliente=id_cliente).all()
-        return response_success(serialize_models(citas), "Citas obtenidas exitosamente")
+        return response_success([serialize_cita(cita) for cita in citas], "Citas obtenidas exitosamente")
     except Exception as e:
         return response_error(str(e), 500)
 
@@ -48,7 +54,7 @@ def create_cita():
             estado='Pendiente'
         )
         cita.save()
-        return response_success(serialize_model(cita), "Cita agendada exitosamente", 201)
+        return response_success(serialize_cita(cita), "Cita agendada exitosamente", 201)
     except Exception as e:
         return response_error(str(e), 500)
 
@@ -67,7 +73,7 @@ def update_cita(id):
         if 'motivo' in data:
             cita.motivo = data['motivo']
         cita.save()
-        return response_success(serialize_model(cita), "Cita actualizada exitosamente")
+        return response_success(serialize_cita(cita), "Cita actualizada exitosamente")
     except Exception as e:
         return response_error(str(e), 500)
 

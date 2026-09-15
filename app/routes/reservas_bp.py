@@ -9,12 +9,27 @@ from app.utils.response import response_success, response_error, serialize_model
 
 reservas_bp = Blueprint('reservas', __name__, url_prefix='/api/reservas')
 
+
+def serialize_detalle_reserva(detalle):
+    data = serialize_model(detalle)
+    data['nombre_prenda'] = detalle.inventario.prenda.nombre_prenda if detalle.inventario and detalle.inventario.prenda else None
+    data['codigo_interno'] = detalle.inventario.codigo_interno if detalle.inventario else None
+    data['talla'] = detalle.inventario.talla if detalle.inventario else None
+    return data
+
+
+def serialize_reserva(reserva):
+    data = serialize_model(reserva)
+    data['nombre_cliente'] = reserva.cliente.nombre if reserva.cliente else None
+    data['detalles_reserva'] = [serialize_detalle_reserva(detalle) for detalle in reserva.detalles_reserva]
+    return data
+
                                   
 @reservas_bp.route('', methods=['GET'])
 def get_reservas():
     try:
         reservas = Reserva.query.all()
-        return response_success(serialize_models(reservas), "Reservas obtenidas exitosamente")
+        return response_success([serialize_reserva(reserva) for reserva in reservas], "Reservas obtenidas exitosamente")
     except Exception as e:
         return response_error(str(e), 500)
 
@@ -114,7 +129,7 @@ def create_reserva_con_detalles():
             inv.estado = 'Reservado'
             inv.save()
         
-        return response_success(serialize_model(reserva), "Reserva creada exitosamente con inventarios actualizados", 201)
+        return response_success(serialize_reserva(reserva), "Reserva creada exitosamente con inventarios actualizados", 201)
     except Exception as e:
         return response_error(str(e), 500)
 
@@ -125,7 +140,7 @@ def get_reserva(id):
         reserva = Reserva.query.get(id)
         if not reserva:
             return response_error("Reserva no encontrada", 404)
-        return response_success(serialize_model(reserva), "Reserva obtenida exitosamente")
+        return response_success(serialize_reserva(reserva), "Reserva obtenida exitosamente")
     except Exception as e:
         return response_error(str(e), 500)
 
@@ -134,9 +149,7 @@ def get_reserva(id):
 def get_reservas_by_cliente(id_cliente):
     try:
         reservas = Reserva.query.filter_by(id_cliente=id_cliente).all()
-        if not reservas:
-            return response_error("No hay reservas para este cliente", 404)
-        return response_success(serialize_models(reservas), "Reservas obtenidas exitosamente")
+        return response_success([serialize_reserva(reserva) for reserva in reservas], "Reservas obtenidas exitosamente")
     except Exception as e:
         return response_error(str(e), 500)
 
@@ -176,7 +189,7 @@ def create_reserva():
         )
         reserva.save()
         
-        return response_success(serialize_model(reserva), "Reserva creada exitosamente", 201)
+        return response_success(serialize_reserva(reserva), "Reserva creada exitosamente", 201)
     except Exception as e:
         return response_error(str(e), 500)
 
@@ -234,9 +247,9 @@ def update_reserva(id):
 
             if failed_updates:
                 msg = f"Reserva actualizada, pero fallaron al actualizar inventarios: {failed_updates}"
-                return response_success(serialize_model(reserva), msg, 200)
+                return response_success(serialize_reserva(reserva), msg, 200)
 
-        return response_success(serialize_model(reserva), "Reserva actualizada exitosamente")
+        return response_success(serialize_reserva(reserva), "Reserva actualizada exitosamente")
     except Exception as e:
         return response_error(str(e), 500)
 

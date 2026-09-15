@@ -4,6 +4,10 @@ from werkzeug.security import generate_password_hash
 from app.database.database import db
 from app.models.usuarios import Usuarios
 from app.models.roles import Roles
+from app.models.cita import Cita
+from app.models.reserva import Reserva
+from app.models.detalle_reserva import Detalle_Reserva
+from app.models.comprobante import Comprobante
 from app.utils.auth_middleware import token_required, employee_required
 from app.utils.response import response_success, response_error, serialize_model, serialize_models
 from app.utils.cloudinary_utils import upload_file_to_cloudinary, get_cloudinary_url
@@ -62,7 +66,27 @@ def serialize_usuario(usuario):
     return data
 
 
-                                  
+def eliminar_relaciones_usuario(id_usuario):
+    reservas = Reserva.query.filter(
+        (Reserva.id_cliente == id_usuario) | (Reserva.id_administrador == id_usuario)
+    ).all()
+    ids_reservas = [reserva.idReserva for reserva in reservas]
+
+    if ids_reservas:
+        db.session.query(Comprobante).filter(Comprobante.idReserva.in_(ids_reservas)).delete(synchronize_session=False)
+        db.session.query(Detalle_Reserva).filter(Detalle_Reserva.idReserva.in_(ids_reservas)).delete(synchronize_session=False)
+        db.session.query(Cita).filter(Cita.id_reserva.in_(ids_reservas)).delete(synchronize_session=False)
+
+    db.session.query(Cita).filter(
+        (Cita.id_cliente == id_usuario) | (Cita.id_administrador == id_usuario)
+    ).delete(synchronize_session=False)
+
+    if ids_reservas:
+        db.session.query(Reserva).filter(
+            (Reserva.id_cliente == id_usuario) | (Reserva.id_administrador == id_usuario)
+        ).delete(synchronize_session=False)
+
+
 @usuarios_bp.route('', methods=['GET'])
 @employee_required
 def get_usuarios():
@@ -213,8 +237,11 @@ def delete_usuario(id):
         if not usuario:
             return response_error("Usuario no encontrado", 404)
 
-        usuario.delete()
+        eliminar_relaciones_usuario(id)
+        db.session.delete(usuario)
+        db.session.commit()
 
         return response_success(message="Usuario eliminado exitosamente")
     except Exception as e:
+        db.session.rollback()
         return response_error(str(e), 500)
