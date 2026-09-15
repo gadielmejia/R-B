@@ -12,6 +12,7 @@ def create_app():
     db.init_app(app)
     CORS(app, origins=r"http://localhost:\d+")
     #CORS (app, origins=["http://localhost:5173", "http://localhost:8080", "http://localhost:65372"])
+    Migrate(app, db)
 
     from app.models import (
         Roles, Categoria, Usuarios, Prenda, Inventario,
