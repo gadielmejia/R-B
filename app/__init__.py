@@ -10,9 +10,9 @@ def create_app():
     app.config.from_object(Config)
     init_cloudinary(app)
     db.init_app(app)
-    CORS(app, origins=r"http://localhost:\d+")
+    CORS(app, resources={r"/*": {"origins": "*"}})
     #CORS (app, origins=["http://localhost:5173", "http://localhost:8080", "http://localhost:65372"])
-    migrate = Migrate(app, db)
+    Migrate(app, db)
 
     from app.models import (
         Roles, Categoria, Usuarios, Prenda, Inventario,

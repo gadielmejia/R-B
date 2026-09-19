@@ -4,16 +4,40 @@ from app.models.reserva import Reserva
 from app.models.usuarios import Usuarios
 from app.models.inventario import Inventario
 from app.models.detalle_reserva import Detalle_Reserva
+from app.models.prenda import Prenda
 from app.utils.response import response_success, response_error, serialize_model, serialize_models
+from sqlalchemy.orm import joinedload
 
 reservas_bp = Blueprint('reservas', __name__, url_prefix='/api/reservas')
+
+def serialize_reserva_with_details(reserva):
+    result = serialize_model(reserva)
+    if reserva.cliente:
+        result['cliente'] = serialize_model(reserva.cliente)
+    if reserva.administrador:
+        result['administrador'] = serialize_model(reserva.administrador)
+    if reserva.detalles_reserva:
+        detalles_data = []
+        for det in reserva.detalles_reserva:
+            det_data = serialize_model(det)
+            if det.inventario:
+                det_data['inventario'] = serialize_model(det.inventario)
+                if det.inventario.prenda:
+                    det_data['prenda'] = serialize_model(det.inventario.prenda)
+            detalles_data.append(det_data)
+        result['detalles'] = detalles_data
+    return result
 
 # GET - Obtener todas las reservas
 @reservas_bp.route('', methods=['GET'])
 def get_reservas():
     try:
-        reservas = Reserva.query.all()
-        return response_success(serialize_models(reservas), "Reservas obtenidas exitosamente")
+        reservas = Reserva.query.options(
+            joinedload(Reserva.cliente),
+            joinedload(Reserva.administrador),
+            joinedload(Reserva.detalles_reserva).joinedload(Detalle_Reserva.inventario).joinedload(Inventario.prenda)
+        ).all()
+        return response_success([serialize_reserva_with_details(r) for r in reservas], "Reservas obtenidas exitosamente")
     except Exception as e:
         return response_error(str(e), 500)
 
@@ -120,10 +144,14 @@ def create_reserva_con_detalles():
 @reservas_bp.route('/<int:id>', methods=['GET'])
 def get_reserva(id):
     try:
-        reserva = Reserva.query.get(id)
+        reserva = Reserva.query.options(
+            joinedload(Reserva.cliente),
+            joinedload(Reserva.administrador),
+            joinedload(Reserva.detalles_reserva).joinedload(Detalle_Reserva.inventario).joinedload(Inventario.prenda)
+        ).get(id)
         if not reserva:
             return response_error("Reserva no encontrada", 404)
-        return response_success(serialize_model(reserva), "Reserva obtenida exitosamente")
+        return response_success(serialize_reserva_with_details(reserva), "Reserva obtenida exitosamente")
     except Exception as e:
         return response_error(str(e), 500)
 
@@ -131,10 +159,14 @@ def get_reserva(id):
 @reservas_bp.route('/cliente/<int:id_cliente>', methods=['GET'])
 def get_reservas_by_cliente(id_cliente):
     try:
-        reservas = Reserva.query.filter_by(id_cliente=id_cliente).all()
+        reservas = Reserva.query.options(
+            joinedload(Reserva.cliente),
+            joinedload(Reserva.administrador),
+            joinedload(Reserva.detalles_reserva).joinedload(Detalle_Reserva.inventario).joinedload(Inventario.prenda)
+        ).filter_by(id_cliente=id_cliente).all()
         if not reservas:
             return response_error("No hay reservas para este cliente", 404)
-        return response_success(serialize_models(reservas), "Reservas obtenidas exitosamente")
+        return response_success([serialize_reserva_with_details(r) for r in reservas], "Reservas obtenidas exitosamente")
     except Exception as e:
         return response_error(str(e), 500)
 
