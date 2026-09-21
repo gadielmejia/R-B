@@ -10,8 +10,20 @@ def create_app():
     app.config.from_object(Config)
     init_cloudinary(app)
     db.init_app(app)
-    CORS(app, resources={r"/*": {"origins": "*"}})
-    #CORS (app, origins=["http://localhost:5173", "http://localhost:8080", "http://localhost:65372"])
+
+    CORS(
+        app,
+        resources={
+            r"/api/*": {
+                "origins": "*",
+                "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+                "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+                "expose_headers": ["Content-Type", "Authorization"],
+            }
+        },
+        supports_credentials=False,
+        automatic_options=True,
+    )
     Migrate(app, db)
 
     from app.models import (
@@ -30,6 +42,7 @@ def create_app():
     from app.routes.auth_bp import auth_bp
     from app.routes.citas_bp import citas_bp
     from app.routes.comprobantes_bp import comprobantes_bp
+    from app.routes.lotes_bp import lotes_bp
 
     app.register_blueprint(home_bp)
     app.register_blueprint(roles_bp)
@@ -41,4 +54,5 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(citas_bp)
     app.register_blueprint(comprobantes_bp)
+    app.register_blueprint(lotes_bp)
     return app
