@@ -28,8 +28,10 @@ def create_app():
 
     from app.models import (
         Roles, Categoria, Usuarios, Prenda, Inventario,
-        Reserva, Detalle_Reserva, Comprobante, Cita
+        Reserva, Detalle_Reserva, Comprobante, Cita, AuditEvent
     )
+    from app.models.audit_event import register_audit_listeners
+    register_audit_listeners()
     
     # Registrar Blueprints
     from app.routes.home_bp import home_bp
@@ -43,6 +45,7 @@ def create_app():
     from app.routes.citas_bp import citas_bp
     from app.routes.comprobantes_bp import comprobantes_bp
     from app.routes.lotes_bp import lotes_bp
+    from app.routes.reports_bp import reports_bp
 
     app.register_blueprint(home_bp)
     app.register_blueprint(roles_bp)
@@ -55,4 +58,5 @@ def create_app():
     app.register_blueprint(citas_bp)
     app.register_blueprint(comprobantes_bp)
     app.register_blueprint(lotes_bp)
+    app.register_blueprint(reports_bp)
     return app

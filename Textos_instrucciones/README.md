@@ -118,6 +118,10 @@ El servidor estará disponible en `http://127.0.0.1:5000`
 - `PUT /api/reservas/<id>` - Actualizar reserva
 - `DELETE /api/reservas/<id>` - Eliminar reserva
 
+### Reportes
+- `GET /api/reportes/trimestral/excel?year=2026&quarter=1` - Descargar el historial de eventos del trimestre calendario en Excel (requiere token de administrador).
+- El historial audita creaciones, actualizaciones y eliminaciones de entidades desde que se aplica la migración `20261006_01`. No es posible reconstruir cambios anteriores a esa fecha de instalación; los reportes usan marcas de tiempo UTC.
+
 ## 📁 Estructura del Proyecto
 
 ```
