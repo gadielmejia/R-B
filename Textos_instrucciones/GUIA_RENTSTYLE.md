@@ -58,7 +58,7 @@ cd RENTSTYLE-BACK-END-main
 pip install -r requirements.txt 
 ```
 
-pip install --force-reinstall PyJWT==2.8.0
+Por si falla la contraseña: pip install --force-reinstall PyJWT==2.8.0
 
 
 > ⚠️ Si falla `mysqlclient`, en Windows instala primero:  
