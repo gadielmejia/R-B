@@ -9,6 +9,7 @@ from app.models.reserva import Reserva
 from app.models.detalle_reserva import Detalle_Reserva
 from app.models.comprobante import Comprobante
 from app.models.cita import Cita
+from app.models.audit_event import AuditEvent
 
 __all__ = [
     'Roles',
@@ -20,5 +21,6 @@ __all__ = [
     'Reserva',
     'Detalle_Reserva',
     'Comprobante',
-    'Cita'
+    'Cita',
+    'AuditEvent'
 ]
