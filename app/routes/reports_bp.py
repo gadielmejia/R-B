@@ -4,6 +4,8 @@ import json
 
 from flask import Blueprint, request, send_file
 from openpyxl import Workbook
+from openpyxl.cell import WriteOnlyCell
+from openpyxl.styles import Alignment, Font, PatternFill
 from sqlalchemy import DateTime, func, or_
 
 from app.database.database import db
@@ -24,6 +26,11 @@ reports_bp = Blueprint('reports', __name__, url_prefix='/api/reportes')
 
 _EXCEL_MAX_DATA_ROWS = 1_048_575
 _EXCEL_MIMETYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+_HEADER_FILL = PatternFill(fill_type='solid', fgColor='155D3A')
+_ALTERNATE_FILL = PatternFill(fill_type='solid', fgColor='EFF5F1')
+_HEADER_FONT = Font(color='FFFFFF', bold=True)
+_BODY_ALIGNMENT = Alignment(vertical='top', wrap_text=True)
+_HEADER_ALIGNMENT = Alignment(horizontal='center', vertical='center', wrap_text=True)
 _REPORT_MODELS = (
     Reserva,
     Comprobante,
@@ -44,6 +51,62 @@ def _excel_safe(value):
     if isinstance(value, str) and value.startswith(('=', '+', '-', '@')):
         return "'" + value
     return value
+
+
+def _display_value(value):
+    if isinstance(value, (dict, list)):
+        value = json.dumps(value, ensure_ascii=False, sort_keys=True)
+    return _excel_safe(value)
+
+
+def _append_styled_row(sheet, values, row_number, header=False):
+    cells = []
+    for value in values:
+        cell = WriteOnlyCell(sheet, value=_display_value(value))
+        if header:
+            cell.fill = _HEADER_FILL
+            cell.font = _HEADER_FONT
+            cell.alignment = _HEADER_ALIGNMENT
+        else:
+            cell.alignment = _BODY_ALIGNMENT
+            if isinstance(value, datetime):
+                cell.number_format = 'yyyy-mm-dd hh:mm:ss'
+            if row_number % 2 == 0:
+                cell.fill = _ALTERNATE_FILL
+        cells.append(cell)
+    sheet.append(cells)
+
+
+def _create_report_sheet(workbook, title, headers, widths):
+    sheet = workbook.create_sheet(title)
+    sheet.sheet_view.showGridLines = False
+    sheet.freeze_panes = 'A2'
+    sheet.row_dimensions[1].height = 32
+    for column, width in enumerate(widths, start=1):
+        sheet.column_dimensions[chr(64 + column)].width = width
+    _append_styled_row(sheet, headers, 1, header=True)
+    return sheet
+
+
+def _audit_change_details(item):
+    changes = item.changes
+    if not isinstance(changes, dict):
+        yield 'Detalle', None, changes
+        return
+
+    if item.action in ('create', 'delete'):
+        key = 'after' if item.action == 'create' else 'before'
+        snapshot = changes.get(key, {})
+        if isinstance(snapshot, dict):
+            for field, value in snapshot.items():
+                yield field, None if item.action == 'create' else value, value if item.action == 'create' else None
+            return
+
+    for field, values in changes.items():
+        if isinstance(values, dict) and ('before' in values or 'after' in values):
+            yield field, values.get('before'), values.get('after')
+        else:
+            yield field, None, values
 
 
 def _date_bounds(column, start, end):
@@ -131,15 +194,25 @@ def download_quarterly_report():
 
     workbook = Workbook(write_only=True)
     summary_sheet = workbook.create_sheet('Resumen')
-    summary_sheet.append(['Reporte trimestral', f'T{quarter} {year}'])
-    summary_sheet.append(['Período UTC', f'{start:%Y-%m-%d} a {(end - timedelta(days=1)):%Y-%m-%d}'])
-    summary_sheet.append(['Total de eventos registrados', event_count])
-    summary_sheet.append([
-        'Nota',
-        'El historial detallado solo existe desde la instalación; los registros actuales usan fechas disponibles.',
-    ])
-    summary_sheet.append([])
-    summary_sheet.append(['Tipo de registro', 'Acción', 'Cantidad'])
+    summary_sheet.sheet_view.showGridLines = False
+    summary_sheet.freeze_panes = 'A7'
+    summary_sheet.column_dimensions['A'].width = 36
+    summary_sheet.column_dimensions['B'].width = 64
+    summary_rows = [
+        ['Reporte trimestral', f'T{quarter} {year}'],
+        ['Período UTC', f'{start:%Y-%m-%d} a {(end - timedelta(days=1)):%Y-%m-%d}'],
+        ['Total de eventos registrados', event_count],
+        [
+            'Nota',
+            'El historial detallado solo existe desde la instalación; los registros actuales usan fechas disponibles.',
+        ],
+        [],
+        ['Tipo de registro', 'Acción', 'Cantidad'],
+    ]
+    for row_number, row in enumerate(summary_rows, start=1):
+        _append_styled_row(summary_sheet, row, row_number, header=(row_number == 1 or row_number == 6))
+    summary_sheet.row_dimensions[1].height = 26
+    summary_sheet.row_dimensions[4].height = 36
 
     grouped_counts = (
         db.session.query(AuditEvent.entity_type, AuditEvent.action, func.count(AuditEvent.idAuditEvent))
@@ -148,45 +221,75 @@ def download_quarterly_report():
         .order_by(AuditEvent.entity_type, AuditEvent.action)
         .all()
     )
-    for entity_type, action, count in grouped_counts:
-        summary_sheet.append([entity_type, action, count])
+    for row_number, (entity_type, action, count) in enumerate(grouped_counts, start=7):
+        _append_styled_row(summary_sheet, [entity_type, action, count], row_number)
+    summary_sheet.auto_filter.ref = f'A6:C{max(6, 6 + len(grouped_counts))}'
 
-    history_sheet = workbook.create_sheet('Historial')
-    history_sheet.append([
+    history_sheet = _create_report_sheet(workbook, 'Historial', [
         'Fecha y hora UTC',
         'Tipo de registro',
         'ID del registro',
         'Acción',
         'ID del usuario responsable',
-        'Cambios (JSON)',
-    ])
-    history_sheet.freeze_panes = 'A2'
-    history_sheet.auto_filter.ref = f'A1:F{event_count + 1}'
+    ], [22, 24, 18, 16, 24])
+    history_count = 0
 
     events = (
         AuditEvent.query.filter(*period)
         .order_by(AuditEvent.occurred_at, AuditEvent.idAuditEvent)
         .yield_per(1000)
     )
+    detail_sheet = _create_report_sheet(workbook, 'Detalle de cambios', [
+        'Fecha y hora UTC',
+        'Tipo de registro',
+        'ID del registro',
+        'Acción',
+        'Campo',
+        'Valor anterior',
+        'Valor nuevo',
+    ], [22, 24, 18, 16, 32, 52, 52])
+    detail_count = 0
     for item in events:
-        history_sheet.append([
-            _excel_safe(item.occurred_at.isoformat(sep=' ')),
-            _excel_safe(item.entity_type),
-            _excel_safe(item.entity_id),
-            _excel_safe(item.action),
+        history_count += 1
+        _append_styled_row(history_sheet, [
+            item.occurred_at,
+            item.entity_type,
+            item.entity_id,
+            item.action,
             item.actor_user_id,
-            _excel_safe(json.dumps(item.changes, ensure_ascii=False, sort_keys=True)),
-        ])
+        ], history_count + 1)
+        for field, before, after in _audit_change_details(item):
+            detail_count += 1
+            if detail_count > _EXCEL_MAX_DATA_ROWS:
+                return response_error(
+                    "El trimestre supera el máximo de filas que admite una hoja de Excel",
+                    413,
+                )
+            _append_styled_row(detail_sheet, [
+                item.occurred_at,
+                item.entity_type,
+                item.entity_id,
+                item.action,
+                field,
+                before,
+                after,
+            ], detail_count + 1)
+    history_sheet.auto_filter.ref = f'A1:E{event_count + 1}'
+    detail_sheet.auto_filter.ref = f'A1:G{detail_count + 1}'
 
-    current_records_sheet = workbook.create_sheet('Registros actuales')
-    current_records_sheet.append([
+    current_records_sheet = _create_report_sheet(workbook, 'Registros actuales', [
         'Tipo de registro',
         'ID del registro',
         'Fechas coincidentes UTC',
-        'Estado actual (JSON; no reconstruye cambios pasados)',
-    ])
-    current_records_sheet.freeze_panes = 'A2'
+    ], [24, 20, 72])
+    current_data_sheet = _create_report_sheet(workbook, 'Datos actuales', [
+        'Tipo de registro',
+        'ID del registro',
+        'Campo',
+        'Valor actual',
+    ], [24, 20, 36, 64])
     current_record_count = 0
+    current_field_count = 0
     for instance, reference_at in _current_period_records(start, end):
         current_record_count += 1
         if current_record_count > _EXCEL_MAX_DATA_ROWS:
@@ -196,13 +299,27 @@ def download_quarterly_report():
             )
         identity = type(instance).__mapper__.primary_key
         record_id = ':'.join(str(getattr(instance, column.key)) for column in identity)
-        current_records_sheet.append([
-            _excel_safe(type(instance).__name__),
-            _excel_safe(record_id),
-            _excel_safe(reference_at),
-            _excel_safe(json.dumps(serialize_record(instance), ensure_ascii=False, sort_keys=True)),
-        ])
-    current_records_sheet.auto_filter.ref = f'A1:D{current_record_count + 1}'
+        entity_type = type(instance).__name__
+        _append_styled_row(current_records_sheet, [
+            entity_type,
+            record_id,
+            reference_at,
+        ], current_record_count + 1)
+        for field, value in serialize_record(instance).items():
+            current_field_count += 1
+            if current_field_count > _EXCEL_MAX_DATA_ROWS:
+                return response_error(
+                    "El trimestre supera el máximo de filas que admite una hoja de Excel",
+                    413,
+                )
+            _append_styled_row(current_data_sheet, [
+                entity_type,
+                record_id,
+                field,
+                value,
+            ], current_field_count + 1)
+    current_records_sheet.auto_filter.ref = f'A1:C{current_record_count + 1}'
+    current_data_sheet.auto_filter.ref = f'A1:D{current_field_count + 1}'
 
     output = BytesIO()
     workbook.save(output)

@@ -121,6 +121,7 @@ El servidor estará disponible en `http://127.0.0.1:5000`
 ### Reportes
 - `GET /api/reportes/trimestral/excel?year=2026&quarter=1` - Descargar el historial de eventos del trimestre calendario en Excel (requiere token de administrador).
 - El historial audita creaciones, actualizaciones y eliminaciones de entidades desde que se aplica la migración `20261006_01`. No es posible reconstruir cambios anteriores a esa fecha de instalación; los reportes usan marcas de tiempo UTC.
+- El Excel organiza la información en las hojas `Resumen`, `Historial`, `Detalle de cambios`, `Registros actuales` y `Datos actuales`. Los valores de cambios y registros se presentan por campo, con filtros, encabezados fijos y texto ajustado para facilitar su lectura.
 
 ## 📁 Estructura del Proyecto
 
