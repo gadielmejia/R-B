@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime, timedelta
 from io import BytesIO
 import json
@@ -192,28 +193,6 @@ def download_quarterly_report():
             413,
         )
 
-    workbook = Workbook(write_only=True)
-    summary_sheet = workbook.create_sheet('Resumen')
-    summary_sheet.sheet_view.showGridLines = False
-    summary_sheet.freeze_panes = 'A7'
-    summary_sheet.column_dimensions['A'].width = 36
-    summary_sheet.column_dimensions['B'].width = 64
-    summary_rows = [
-        ['Reporte trimestral', f'T{quarter} {year}'],
-        ['Período UTC', f'{start:%Y-%m-%d} a {(end - timedelta(days=1)):%Y-%m-%d}'],
-        ['Total de eventos registrados', event_count],
-        [
-            'Nota',
-            'El historial detallado solo existe desde la instalación; los registros actuales usan fechas disponibles.',
-        ],
-        [],
-        ['Tipo de registro', 'Acción', 'Cantidad'],
-    ]
-    for row_number, row in enumerate(summary_rows, start=1):
-        _append_styled_row(summary_sheet, row, row_number, header=(row_number == 1 or row_number == 6))
-    summary_sheet.row_dimensions[1].height = 26
-    summary_sheet.row_dimensions[4].height = 36
-
     grouped_counts = (
         db.session.query(AuditEvent.entity_type, AuditEvent.action, func.count(AuditEvent.idAuditEvent))
         .filter(*period)
@@ -221,9 +200,44 @@ def download_quarterly_report():
         .order_by(AuditEvent.entity_type, AuditEvent.action)
         .all()
     )
-    for row_number, (entity_type, action, count) in enumerate(grouped_counts, start=7):
+    entity_totals = defaultdict(int)
+    action_totals = defaultdict(int)
+    for entity_type, action, count in grouped_counts:
+        entity_totals[entity_type] += count
+        action_totals[action] += count
+
+    top_entity = max(entity_totals.items(), key=lambda item: item[1], default=('Sin datos', 0))
+    top_action = max(action_totals.items(), key=lambda item: item[1], default=('Sin datos', 0))
+
+    workbook = Workbook(write_only=True)
+
+    summary_sheet = workbook.create_sheet('Resumen ejecutivo')
+    summary_sheet.sheet_view.showGridLines = False
+    summary_sheet.freeze_panes = 'A7'
+    summary_sheet.column_dimensions['A'].width = 30
+    summary_sheet.column_dimensions['B'].width = 26
+    summary_sheet.column_dimensions['C'].width = 18
+
+    summary_rows = [
+        ['Reporte trimestral', f'T{quarter} {year}', ''],
+        ['Periodo', f'{start:%Y-%m-%d} a {(end - timedelta(days=1)):%Y-%m-%d}', ''],
+        ['Total de eventos registrados', event_count, ''],
+        ['Entidades con actividad', len(entity_totals), ''],
+        ['Acciones registradas', len(action_totals), ''],
+        ['Entidad con mayor actividad', top_entity[0], f'{top_entity[1]} eventos'],
+        ['Acción con mayor actividad', top_action[0], f'{top_action[1]} eventos'],
+        ['Nota', 'El historial detallado solo existe desde la instalación; los registros actuales usan fechas disponibles.', ''],
+        [],
+        ['Tipo de registro', 'Acción', 'Cantidad'],
+    ]
+    for row_number, row in enumerate(summary_rows, start=1):
+        _append_styled_row(summary_sheet, row, row_number, header=(row_number == 1 or row_number == 10))
+    summary_sheet.row_dimensions[1].height = 26
+    summary_sheet.row_dimensions[8].height = 30
+
+    for row_number, (entity_type, action, count) in enumerate(grouped_counts, start=11):
         _append_styled_row(summary_sheet, [entity_type, action, count], row_number)
-    summary_sheet.auto_filter.ref = f'A6:C{max(6, 6 + len(grouped_counts))}'
+    summary_sheet.auto_filter.ref = f'A10:C{max(10, 10 + len(grouped_counts))}'
 
     history_sheet = _create_report_sheet(workbook, 'Historial', [
         'Fecha y hora UTC',
@@ -231,7 +245,7 @@ def download_quarterly_report():
         'ID del registro',
         'Acción',
         'ID del usuario responsable',
-    ], [22, 24, 18, 16, 24])
+    ], [22, 24, 22, 18, 24])
     history_count = 0
 
     events = (
@@ -247,7 +261,7 @@ def download_quarterly_report():
         'Campo',
         'Valor anterior',
         'Valor nuevo',
-    ], [22, 24, 18, 16, 32, 52, 52])
+    ], [22, 24, 22, 18, 30, 50, 50])
     detail_count = 0
     for item in events:
         history_count += 1
@@ -274,20 +288,20 @@ def download_quarterly_report():
                 before,
                 after,
             ], detail_count + 1)
-    history_sheet.auto_filter.ref = f'A1:E{event_count + 1}'
-    detail_sheet.auto_filter.ref = f'A1:G{detail_count + 1}'
+    history_sheet.auto_filter.ref = f'A1:E{max(1, event_count + 1)}'
+    detail_sheet.auto_filter.ref = f'A1:G{max(1, detail_count + 1)}'
 
     current_records_sheet = _create_report_sheet(workbook, 'Registros actuales', [
         'Tipo de registro',
         'ID del registro',
-        'Fechas coincidentes UTC',
+        'Fechas coincidentes en el trimestre',
     ], [24, 20, 72])
     current_data_sheet = _create_report_sheet(workbook, 'Datos actuales', [
         'Tipo de registro',
         'ID del registro',
         'Campo',
         'Valor actual',
-    ], [24, 20, 36, 64])
+    ], [24, 20, 32, 64])
     current_record_count = 0
     current_field_count = 0
     for instance, reference_at in _current_period_records(start, end):
@@ -318,8 +332,8 @@ def download_quarterly_report():
                 field,
                 value,
             ], current_field_count + 1)
-    current_records_sheet.auto_filter.ref = f'A1:C{current_record_count + 1}'
-    current_data_sheet.auto_filter.ref = f'A1:D{current_field_count + 1}'
+    current_records_sheet.auto_filter.ref = f'A1:C{max(1, current_record_count + 1)}'
+    current_data_sheet.auto_filter.ref = f'A1:D{max(1, current_field_count + 1)}'
 
     output = BytesIO()
     workbook.save(output)
