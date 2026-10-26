@@ -178,6 +178,8 @@ def update_usuario(id):
         if 'Contrasena' in data and data['Contrasena']:
             usuario.Contrasena = generate_password_hash(data['Contrasena'])
         if 'idRol' in data:
+            if not is_admin_request():
+                return response_error("Solo un administrador puede cambiar el rol", 403)
             try:
                 id_rol = int(data['idRol'])
             except (TypeError, ValueError):
@@ -205,6 +207,11 @@ def delete_usuario(id):
         usuario = Usuarios.query.get(id)
         if not usuario:
             return response_error("Usuario no encontrado", 404)
+        
+        rol_objetivo = (usuario.rol.nombre if usuario.rol else '').strip().lower()
+        if rol_objetivo in ('admin', 'administrador') and not is_admin_request():
+            return response_error("Solo un administrador puede eliminar a un administrador", 403)
+
 
         usuario.delete()
 
