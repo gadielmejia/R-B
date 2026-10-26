@@ -116,8 +116,6 @@ def test_unit28_inventario_rechaza_codigo_duplicado_o_faltante(client, app, head
         assert Inventario.query.count() == 2   # no se creó ninguna prenda nueva
  
  
-# ---------------------------------------------------------------- RESERVAS
-# UNIT-29: al cambiar el estado de la reserva, el inventario se sincroniza
 @pytest.mark.parametrize("nuevo_estado,inventario_esperado", [
     ("Confirmada", "Alquilado"),
     ("Cancelada", "Disponible"),
@@ -136,11 +134,11 @@ def test_unit29_reserva_sincroniza_estado_del_inventario(client, app, headers_em
         assert db.session.get(Inventario, 2).estado == inventario_esperado
  
  
-# UNIT-30: la reserva solo acepta estados válidos
+
 def test_unit30_reserva_rechaza_estado_invalido(client, app, headers_empleado):
-    # Act
+
     r = client.put("/api/reservas/1", json={"estado": "Perdida"}, headers=headers_empleado)
-    # Assert
+
     assert r.status_code == 400, "update_reserva acepta cualquier texto como estado"
     with app.app_context():
         assert db.session.get(Reserva, 1).estado == "Pendiente"

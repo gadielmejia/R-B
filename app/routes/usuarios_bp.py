@@ -54,7 +54,7 @@ def is_admin_request():
 
 
 def serialize_usuario(usuario):
-    data = serialize_model(usuario)
+    data = serialize_model(usuario, exclude_fields=['Contrasena'])
     data['rol_nombre'] = usuario.rol.nombre if usuario.rol else None
     if usuario.avatar_url and not usuario.avatar_url.startswith('http'):
         data['avatar_url'] = get_cloudinary_url(usuario.avatar_url)

@@ -2,6 +2,7 @@ from flask import Blueprint, request
 from app.database.database import db
 from app.models.roles import Roles
 from app.utils.response import response_success, response_error, serialize_model, serialize_models
+from app.utils.auth_middleware import admin_required
 
 roles_bp = Blueprint('roles', __name__, url_prefix='/api/roles')
 
@@ -27,6 +28,7 @@ def get_rol(id):
 
 # POST - Crear nuevo rol
 @roles_bp.route('', methods=['POST'])
+@admin_required
 def create_rol():
     try:
         data = request.get_json()
@@ -50,6 +52,7 @@ def create_rol():
 
 # PUT - Actualizar rol
 @roles_bp.route('/<int:id>', methods=['PUT'])
+@admin_required
 def update_rol(id):
     try:
         rol = Roles.query.get(id)
@@ -76,6 +79,7 @@ def update_rol(id):
 
 # DELETE - Eliminar rol
 @roles_bp.route('/<int:id>', methods=['DELETE'])
+@admin_required
 def delete_rol(id):
     try:
         rol = Roles.query.get(id)

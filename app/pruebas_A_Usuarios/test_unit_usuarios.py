@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
 
 from app import create_app
+from app.config.settings import Config
 from app.database.database import db
 from app.models.roles import Roles
 from app.models.usuarios import Usuarios
@@ -13,14 +14,19 @@ from app.utils.auth_middleware import admin_required
 
 
 @pytest.fixture
-def app():
+def app(monkeypatch):
+    monkeypatch.setattr(Config, "SQLALCHEMY_DATABASE_URI", "sqlite:///:memory:")
+    monkeypatch.setattr(Config, "SECRET_KEY", "test-secret-key-rentstyle")
+    monkeypatch.setattr(Config, "CLOUDINARY_CLOUD_NAME", "demo")
+    monkeypatch.setattr(Config, "CLOUDINARY_API_KEY", "123456")
+    monkeypatch.setattr(Config, "CLOUDINARY_API_SECRET", "secreto-de-prueba")
     app = create_app()
     app.config.update({
         "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
         "SECRET_KEY": "test-secret-key-rentstyle",
     })
     with app.app_context():
+        assert str(db.engine.url).startswith("sqlite"), "Las pruebas no deben tocar MySQL"
         db.create_all()
         rol_admin = Roles(idRol=1, nombre="Administrador")
         rol_cliente = Roles(idRol=2, nombre="Cliente")
@@ -73,7 +79,7 @@ def test_unit01_normalize_role_name(entrada, esperado):
     assert resultado == esperado
 
 
-# UNIT-02: No exponer el hash de la contraseña al serializar usuario (Falla por BUG-SEC-002)
+# UNIT-02: No exponer el hash de la contraseña al serializar usuario
 def test_unit02_serialize_usuario_no_expone_contrasena(app):
     with app.app_context():
         # Arrange
@@ -81,7 +87,7 @@ def test_unit02_serialize_usuario_no_expone_contrasena(app):
         # Act
         data = serialize_usuario(usuario)
         # Assert
-        assert "Contrasena" not in data, "BUG-SEC-002: Se está exponiendo el hash de la contraseña"
+        assert "Contrasena" not in data, "Se está exponiendo el hash de la contraseña"
 
 
 # UNIT-03: Validación de campos requeridos al crear usuario
@@ -153,7 +159,7 @@ def test_unit06_registro_publico_fuerza_rol_cliente(client):
     assert data["idRol"] == 2
 
 
-# UNIT-07: Escalada de privilegios en PUT /api/usuarios/<id> sin token (Falla por BUG-SEC-003)
+# UNIT-07: Bloquear cambios de rol sin token de administrador
 def test_unit07_actualizar_usuario_bloquea_escalada_rol_sin_token(client, app):
     with app.app_context():
         cliente = Usuarios.query.filter_by(correo="juan@test.com").first()
@@ -162,8 +168,9 @@ def test_unit07_actualizar_usuario_bloquea_escalada_rol_sin_token(client, app):
     # Arrange & Act: Petición PUT sin token intentando pasar a idRol=1 (Admin)
     response = client.put(f"/api/usuarios/{user_id}", json={"idRol": 1})
 
-    # Assert: El oráculo exige 401 o 403, pero actualmente devuelve 200 (BUG-SEC-003)
-    assert response.status_code in (401, 403), "BUG-SEC-003: Escalada de privilegios permitida sin token"
+    assert response.status_code in (401, 403), "Se permitió cambiar el rol sin token de administrador"
+    with app.app_context():
+        assert Usuarios.query.get(user_id).idRol == 2
 
 
 # UNIT-08: Generación de token JWT y verificación en /api/verify-token
@@ -174,7 +181,7 @@ def test_unit08_generate_and_verify_token(client, app):
         token = generate_token(cliente)
 
     # Act
-    response = client.get("/api/verify-token", headers={"Authorization": f"Bearer {token}"})
+    response = client.get("/api/verify-token", headers={"Authorization": "Bearer " + token})
     body = response.get_json()
 
     # Assert
@@ -202,7 +209,7 @@ def test_unit09_admin_required_sin_token_y_expirado(app):
             app.config["SECRET_KEY"],
             algorithm="HS256",
         )
-    with app.test_request_context("/ruta-protegida", headers={"Authorization": f"Bearer {expired_token}"}):
+    with app.test_request_context("/ruta-protegida", headers={"Authorization": "Bearer " + expired_token}):
         res_exp, status_exp = dummy_view()
         assert status_exp == 401
         assert "Sesión expirada" in res_exp.get_json()["message"]
@@ -220,17 +227,17 @@ def test_unit10_admin_required_control_de_roles(app):
         token_adm = jwt.encode({"idUsuario": 1, "rol": "admin"}, app.config["SECRET_KEY"], algorithm="HS256")
 
     # Cliente -> 403
-    with app.test_request_context("/admin", headers={"Authorization": f"Bearer {token_user}"}):
+    with app.test_request_context("/admin", headers={"Authorization": "Bearer " + token_user}):
         _, status_user = dummy_view()
         assert status_user == 403
 
     # Empleado -> 403
-    with app.test_request_context("/admin", headers={"Authorization": f"Bearer {token_emp}"}):
+    with app.test_request_context("/admin", headers={"Authorization": "Bearer " + token_emp}):
         _, status_emp = dummy_view()
         assert status_emp == 403
 
     # Admin -> 200
-    with app.test_request_context("/admin", headers={"Authorization": f"Bearer {token_adm}"}):
+    with app.test_request_context("/admin", headers={"Authorization": "Bearer " + token_adm}):
         res_adm, status_adm = dummy_view()
         assert status_adm == 200
         assert res_adm == "ok"
