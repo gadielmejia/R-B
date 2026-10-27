@@ -220,7 +220,12 @@ def update_reserva(id):
         data = request.get_json()
         
         if not data:
+            
             return response_error("El body debe ser un JSON válido", 400)
+        estados_validos = ['Pendiente', 'Confirmada', 'Entregada', 'Finalizada', 'Cancelada']
+        if 'estado' in data and data['estado'] not in estados_validos:
+            return response_error(f"Estado inválido. Estados válidos: {', '.join(estados_validos)}", 400)
+
         
         # Actualizar solo los campos proporcionados
         if 'estado' in data:
